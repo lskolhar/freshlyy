@@ -11,6 +11,7 @@
 
     <form method="POST" action="/login" class="space-y-6">
         @csrf
+            <input type="hidden" name="role" value="{{ $role ?? request('role', 'user') }}">
 
         <!-- Email -->
         <div>

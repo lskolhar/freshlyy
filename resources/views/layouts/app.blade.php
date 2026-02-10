@@ -35,21 +35,14 @@
                 <!-- Right side -->
                 <div class="flex items-center space-x-4">
 
-                    <!-- Search -->
-                    <form action="#" method="GET" class="flex items-center border border-gray-300 rounded-md px-2">
-                        <input type="text" name="q" placeholder="Search products..."
-                            class="w-56 px-2 py-1 text-sm outline-none">
-                        <button type="submit" class="text-gray-500 hover:text-indigo-600">
-                            🔍
-                        </button>
-                    </form>
+                  
 
                     @guest
-                        <x-nav-link href="/login" variant="outline" :active="request()->is('login')">
+                        <x-nav-link href="/login-options" variant="outline" :active="request()->is('login')">
                             Log In
                         </x-nav-link>
 
-                        <x-nav-link href="/register" variant="outline" :active="request()->is('register')">
+                        <x-nav-link href="/register-options" variant="outline" :active="request()->is('register')">
                             Register
                         </x-nav-link>
                     @endguest
@@ -63,12 +56,13 @@
 
                         </form>
                     @endauth
+                    
 
 
                     <!-- Cart -->
-                    <a href="/cart">
+                    <x-form-button href="/cart">
                         Cart ({{ count(session('cart', [])) }})
-                    </a>
+                    </x-form-button>
                 </div>
 
             </div>

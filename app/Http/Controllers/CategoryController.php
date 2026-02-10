@@ -9,7 +9,13 @@ class CategoryController extends Controller
 {
     public function show($slug)
     {
-        $category = Category::where('slug', $slug)->with('products')->firstOrFail();
+        $category = Category::where('slug', $slug)
+            ->with([
+                'products' => function ($query) {
+                    $query->orderBy('name', 'asc');
+                }
+            ])
+            ->firstOrFail();
         return view('category', compact('category'));
     }
 }
