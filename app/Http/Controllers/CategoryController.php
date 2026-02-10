@@ -10,12 +10,12 @@ class CategoryController extends Controller
     public function show($slug)
     {
         $category = Category::where('slug', $slug)
-            ->with([
-                'products' => function ($query) {
-                    $query->orderBy('name', 'asc');
-                }
-            ])
+            ->with(['products' => fn($q) => $q->orderBy('name')])
             ->firstOrFail();
-        return view('category', compact('category'));
+
+        $cart = session()->get('cart', []);
+
+        return view('category', compact('category', 'cart'));
     }
+
 }

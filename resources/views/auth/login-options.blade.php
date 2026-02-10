@@ -6,12 +6,12 @@
         <input type="hidden" name="role" value="{{ request('role', 'user') }}">
 
         <a href="{{ route('login', ['role' => 'user']) }}"
-           class="block bg-green-600 text-white text-center py-2 rounded">
+            class="block bg-green-600 text-white text-center py-2 rounded">
             User Login
         </a>
 
         <a href="{{ route('login', ['role' => 'admin']) }}"
-           class="block bg-blue-600 text-white text-center py-2 rounded">
+            class="block bg-blue-600 text-white text-center py-2 rounded">
             Admin Login
         </a>
     </div>

@@ -5,6 +5,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\RegisterUserController;
+use App\Http\Controllers\CartController;
 
 /*
  Home
@@ -19,10 +20,10 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
 
     // Login / Register option pages
-    Route::get('/login-options', fn () => view('auth.login-options'))
+    Route::get('/login-options', fn() => view('auth.login-options'))
         ->name('login-options');
 
-    Route::get('/register-options', fn () => view('auth.register-options'))
+    Route::get('/register-options', fn() => view('auth.register-options'))
         ->name('register-options');
 
     // Login form
@@ -62,10 +63,14 @@ Route::middleware('auth')->group(function () {
 /*
  Cart (optional: keep public or protect later)
 */
-Route::get('/cart', function () {
-    $cart = session()->get('cart', []);
-    return view('cart', compact('cart'));
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/{product}', [CartController::class, 'add'])->name('cart.add');
+    Route::patch('/cart/{product}', [CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/{product}', [CartController::class, 'remove'])->name('cart.remove');
 });
+
 
 // admin only 
 Route::middleware(['auth', 'admin'])->group(function () {

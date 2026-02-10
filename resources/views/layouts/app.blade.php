@@ -35,7 +35,7 @@
                 <!-- Right side -->
                 <div class="flex items-center space-x-4">
 
-                  
+
 
                     @guest
                         <x-nav-link href="/login-options" variant="outline" :active="request()->is('login')">
@@ -56,13 +56,16 @@
 
                         </form>
                     @endauth
-                    
+
 
 
                     <!-- Cart -->
-                    <x-form-button href="/cart">
-                        Cart ({{ count(session('cart', [])) }})
-                    </x-form-button>
+                    @if(auth()->check() && auth()->user()->role === 'user')
+                        <a href="{{ route('cart.index') }}" class="relative">
+                            🛒 Cart
+                        </a>
+                    @endif
+
                 </div>
 
             </div>
