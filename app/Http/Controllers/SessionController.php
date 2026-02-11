@@ -4,17 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 
 class SessionController extends Controller
 {
-    public function create(Request $request)
+    public function create()
     {
-        return view('auth.login', [
-            'role' => $request->query('role', 'user')
-        ]);
+        // No role handling anymore
+        return view('auth.login');
     }
-
 
     public function store(Request $request)
     {
@@ -25,36 +22,21 @@ class SessionController extends Controller
 
         if (!Auth::attempt($credentials)) {
             return back()->withErrors([
-                'email' => 'Invalid credentials',
-                'password' => 'Invalid password',
+                'email' => 'Invalid credentials.',
             ]);
         }
 
         $request->session()->regenerate();
 
-        // 🔐 ROLE CHECK
-        if ($request->role !== auth()->user()->role) {
-            Auth::logout();
-            return back()->withErrors([
-                'email' => 'Unauthorized login attempt',
-            ]);
-        }
-
-        // Redirect based on role
-        if (auth()->user()->role === 'admin') {
-            return redirect()->route('home');
-        }
+        // No role check here
+        // Role only affects UI + middleware
 
         return redirect('/');
     }
 
-
     public function destroy()
     {
-
         Auth::logout();
-
         return redirect('/');
-
     }
 }

@@ -38,11 +38,11 @@
 
 
                     @guest
-                        <x-nav-link href="/login-options" variant="outline" :active="request()->is('login')">
+                        <x-nav-link href="/login" variant="outline" :active="request()->is('login')">
                             Log In
                         </x-nav-link>
 
-                        <x-nav-link href="/register-options" variant="outline" :active="request()->is('register')">
+                        <x-nav-link href="/register" variant="outline" :active="request()->is('register')">
                             Register
                         </x-nav-link>
                     @endguest

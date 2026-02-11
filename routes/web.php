@@ -19,13 +19,6 @@ Route::get('/', function () {
 */
 Route::middleware('guest')->group(function () {
 
-    // Login / Register option pages
-    Route::get('/login-options', fn() => view('auth.login-options'))
-        ->name('login-options');
-
-    Route::get('/register-options', fn() => view('auth.register-options'))
-        ->name('register-options');
-
     // Login form
     Route::get('/login', [SessionController::class, 'create'])
         ->name('login');
@@ -51,10 +44,6 @@ Route::post('/logout', [SessionController::class, 'destroy'])
  Protected Pages (Authenticated users)
 */
 Route::middleware('auth')->group(function () {
-
-    // Dashboard
-    Route::view('/dashboard', 'dashboard')
-        ->name('dashboard');
 
     // Categories (Dairy, Vegetables, Fruits, Meat)
     Route::get('/category/{slug}', [CategoryController::class, 'show']);
