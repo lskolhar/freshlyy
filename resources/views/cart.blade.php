@@ -68,11 +68,15 @@
         @endif
         @if(count($cart) > 0)
             <div class="mt-6 flex justify-end">
-                <button type="button"
-                    class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition duration-200">
-                    Pay
-                </button>
+                <form action="{{ route('checkout') }}" method="POST">
+                    @csrf
+                    <button type="submit"
+                        class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition duration-200">
+                        Pay
+                    </button>
+                </form>
             </div>
         @endif
+
     </div>
 @endsection

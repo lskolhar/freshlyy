@@ -6,6 +6,8 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\RegisterUserController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\OrderController;
+
 
 /*
  Home
@@ -67,3 +69,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 });
+
+
+Route::post('/checkout', [OrderController::class, 'store'])
+    ->middleware('auth')
+    ->name('checkout');
+
+
+Route::get('/orders', [OrderController::class, 'index'])
+    ->middleware('auth')
+    ->name('orders.index');
+
+Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])
+    ->middleware('auth')
+    ->name('orders.updateStatus');

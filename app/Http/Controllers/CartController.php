@@ -2,14 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class CartController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     private function cartKey()
     {
+        if (!auth()->check()) {
+            abort(403, 'Unauthorized');
+        }
+
         return 'cart_' . auth()->id();
     }
 
@@ -25,21 +34,27 @@ class CartController extends Controller
         $cart = session()->get($key, []);
 
         if (isset($cart[$product->id])) {
-            $cart[$product->id]['quantity']++;
+            $cart[$product->id]['quantity'] += 1;
         } else {
             $cart[$product->id] = [
-                'name' => $product->name,
-                'price' => $product->price,
-                'quantity' => 1,
+                'product_id' => $product->id,
+                'name'       => $product->name,
+                'price'      => (float) $product->price,
+                'quantity'   => 1,
             ];
         }
 
         session()->put($key, $cart);
-        return back();
+
+        return back()->with('success', 'Product added to cart.');
     }
 
     public function update(Request $request, Product $product)
     {
+        $request->validate([
+            'quantity' => 'required|integer|min:0'
+        ]);
+
         $key = $this->cartKey();
         $cart = session()->get($key, []);
 
@@ -49,14 +64,15 @@ class CartController extends Controller
 
         $quantity = (int) $request->quantity;
 
-        if ($quantity <= 0) {
+        if ($quantity === 0) {
             unset($cart[$product->id]);
         } else {
             $cart[$product->id]['quantity'] = $quantity;
         }
 
         session()->put($key, $cart);
-        return back();
+
+        return back()->with('success', 'Cart updated.');
     }
 
     public function remove(Product $product)
@@ -69,6 +85,13 @@ class CartController extends Controller
         }
 
         session()->put($key, $cart);
-        return back();
+
+        return back()->with('success', 'Product removed.');
+    }
+
+    public function clear()
+    {
+        session()->forget($this->cartKey());
+        return back()->with('success', 'Cart cleared.');
     }
 }

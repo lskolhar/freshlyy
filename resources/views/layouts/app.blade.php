@@ -57,13 +57,23 @@
                         </form>
                     @endauth
 
-
+                    @auth
+                        @if(auth()->user()->role === 'admin')
+                            <x-nav-link href="{{ route('orders.index') }}" class="text-sm text-gray-700">
+                                Orders
+                            </x-nav-link>
+                        @else
+                            <x-nav-link href="{{ route('orders.index') }}" class="text-sm text-gray-700">
+                                My Orders
+                            </x-nav-link>
+                        @endif
+                    @endauth
 
                     <!-- Cart -->
                     @if(auth()->check() && auth()->user()->role === 'user')
-                        <a href="{{ route('cart.index') }}" class="relative">
+                        <x-nav-link href="{{ route('cart.index') }}" class="relative">
                             🛒 Cart
-                        </a>
+                        </x-nav-link>
                     @endif
 
                 </div>
