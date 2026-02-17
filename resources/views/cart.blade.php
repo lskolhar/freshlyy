@@ -74,7 +74,10 @@
                         class="bg-green-400 hover:bg-green-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition duration-200">
                         Pay
                     </button>
-                    
+                    <button type="submit"
+                        class="bg-red-400 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition duration-200">
+                        Cancel
+                    </button>
                 </form>
             </div>
         @endif
