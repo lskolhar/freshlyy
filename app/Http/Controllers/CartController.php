@@ -38,9 +38,9 @@ class CartController extends Controller
         } else {
             $cart[$product->id] = [
                 'product_id' => $product->id,
-                'name'       => $product->name,
-                'price'      => (float) $product->price,
-                'quantity'   => 1,
+                'name' => $product->name,
+                'price' => (float) $product->price,
+                'quantity' => 1,
             ];
         }
 
@@ -91,7 +91,27 @@ class CartController extends Controller
 
     public function clear()
     {
-        session()->forget($this->cartKey());
-        return back()->with('success', 'Cart cleared.');
+        $key = $this->cartKey();
+
+        // Clear session cart
+        session()->forget($key);
+
+        // Cancel latest pending order (if exists)
+        $order = \App\Models\Order::where('user_id', auth()->id())
+            ->where('status', \App\Models\Order::STATUS_PENDING)
+            ->latest()
+            ->first();
+
+        if ($order) {
+            $order->update([
+                'status' => 'cancelled'
+            ]);
+        }
+
+        return redirect()->route('home')
+            ->with('success', 'Cart cleared and order cancelled.');
     }
+
+
+
 }

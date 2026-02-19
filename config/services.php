@@ -34,5 +34,13 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    
+    'omniware' => [
+        'api_key' => env('OMNIWARE_API_KEY'),
+        'salt' => env('OMNIWARE_SALT'),
+        'base_url' => env('OMNIWARE_BASE_URL'),
+        'return_url' => env('OMNIWARE_RETURN_URL'),
+    ],
+
 
 ];

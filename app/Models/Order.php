@@ -15,7 +15,7 @@ class Order extends Model
         'total_amount',
         'status',
         'transaction_id',
-        'payment_response'
+        'payment_reference'
     ];
 
     protected $casts = [
@@ -26,6 +26,8 @@ class Order extends Model
     const STATUS_PENDING = 'pending';
     const STATUS_PAID    = 'paid';
     const STATUS_FAILED  = 'failed';
+    const STATUS_CANCELLED = 'cancelled';
+
 
     public function user()
     {

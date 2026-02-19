@@ -41,7 +41,7 @@ class OrderController extends Controller
                 'order_number' => 'ORD-' . strtoupper(uniqid()),
                 'user_id' => $user->id,
                 'total_amount' => $total,
-                'status' => 'paid', // later change to pending for payment gateway
+                'status' => Order::STATUS_PENDING,
             ]);
 
             foreach ($cart as $productId => $item) {

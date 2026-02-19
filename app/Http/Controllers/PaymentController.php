@@ -17,6 +17,45 @@ class PaymentController extends Controller
         $this->paymentService = $paymentService;
     }
 
+    public function initiatePayment(Request $request)
+    {
+        $user = auth()->user();
+
+        // Get cart data (adapt if your cart is session-based)
+        $cartKey = 'cart_' . auth()->id();
+        $cart = session()->get($cartKey, []);
+
+        if (empty($cart)) {
+            return redirect()->back()->with('error', 'Cart is empty.');
+        }
+
+        $total = 0;
+
+        foreach ($cart as $item) {
+            $total += $item['price'] * $item['quantity'];
+        }
+
+        // Create Order (Pending)
+        $order = Order::create([
+            'order_number' => 'ORD-' . strtoupper(Str::random(8)),
+            'user_id' => $user->id,
+            'total_amount' => $total,
+            'status' => Order::STATUS_PENDING,
+        ]);
+
+        // Generate Signature
+        $signatureData = $this->paymentService->generateSignature($order);
+
+        return view('checkout', [
+            'order' => $order,
+            'signature' => $signatureData['data']['signature'] ?? null,
+            'apiKey' => config('services.omniware.api_key'),
+            'amount' => $order->total_amount,
+            'baseUrl' => config('services.omniware.base_url'),
+        ]);
+    }
+
+
     public function create(Request $request)
     {
         $user = auth()->user();
@@ -45,14 +84,14 @@ class PaymentController extends Controller
 
         $order = Order::create([
             'order_number' => $orderNumber,
-            'user_id'      => $user->id,
+            'user_id' => $user->id,
             'total_amount' => $total,
-            'status'       => Order::STATUS_PENDING,
+            'status' => Order::STATUS_PENDING,
         ]);
 
         Log::info('Order Created', [
             'order_number' => $order->order_number,
-            'amount'       => $order->total_amount,
+            'amount' => $order->total_amount,
         ]);
 
         try {
@@ -76,4 +115,6 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+
+
 }

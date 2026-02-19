@@ -57,11 +57,14 @@ Route::middleware('auth')->group(function () {
 */
 
 Route::middleware(['auth'])->group(function () {
+
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
     Route::post('/cart/{product}', [CartController::class, 'add'])->name('cart.add');
     Route::patch('/cart/{product}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{product}', [CartController::class, 'remove'])->name('cart.remove');
 });
+
 
 
 // admin only 
@@ -70,11 +73,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 });
-
-
-Route::post('/checkout', [OrderController::class, 'store'])
-    ->middleware('auth')
-    ->name('checkout');
 
 
 Route::get('/orders', [OrderController::class, 'index'])
@@ -87,3 +85,7 @@ Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])
 
 
 Route::middleware('auth')->post('/payment/create', [PaymentController::class, 'create']);
+
+Route::post('/checkout', [PaymentController::class, 'initiatePayment'])
+    ->middleware('auth')
+    ->name('checkout.initiate');
