@@ -2,10 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\OrderItem;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Order extends Model
 {
@@ -16,21 +14,24 @@ class Order extends Model
         'user_id',
         'total_amount',
         'status',
+        'transaction_id',
+        'payment_response'
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relationships
-    |--------------------------------------------------------------------------
-    */
+    protected $casts = [
+        'total_amount' => 'decimal:2',
+        'payment_response' => 'array',
+    ];
 
-    // Order belongs to a User
+    const STATUS_PENDING = 'pending';
+    const STATUS_PAID    = 'paid';
+    const STATUS_FAILED  = 'failed';
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // Order has many OrderItems
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);

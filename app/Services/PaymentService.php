@@ -1,0 +1,82 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Order;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class PaymentService
+{
+    protected $hashService;
+
+    public function __construct(HashService $hashService)
+    {
+        $this->hashService = $hashService;
+    }
+
+    public function generateSignature(Order $order): array
+    {
+        $user = $order->user;
+
+        $params = [
+            'api_key'        => env('OMNIWARE_API_KEY'),
+            'return_url'     => env('OMNIWARE_RETURN_URL'),
+            'mode'           => env('OMNIWARE_MODE'),
+            'order_id'       => $order->order_number,
+            'amount'         => (string) ((int) $order->total_amount),
+            'currency'       => 'INR',
+            'description'    => 'Freshlyy Order Payment',
+            'name'           => $user->name,
+            'email'          => $user->email,
+            'phone'          => $user->phone ?? '9999999999',
+            'address_line_1' => 'Test address',
+            'address_line_2' => '',
+            'city'           => 'Bangalore',
+            'state'          => 'Karnataka',
+            'zip_code'       => '560043',
+            'country'        => 'India',
+        ];
+
+        $hash = $this->hashService->generate(
+            $params,
+            env('OMNIWARE_SALT')
+        );
+
+        $params['hash'] = $hash;
+
+        Log::info('Omniware Signature Request', [
+            'order_number' => $order->order_number,
+            'amount'       => $order->total_amount,
+        ]);
+
+        $response = Http::timeout(30)
+            ->post(
+                env('OMNIWARE_BASE_URL') . '/v2/getpaymentrequestsignature',
+                $params
+            );
+
+        Log::info('Omniware Signature Response', [
+            'status' => $response->status(),
+            'body'   => $response->json(),
+        ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Signature API HTTP Error');
+        }
+
+        $responseData = $response->json();
+
+        if (isset($responseData['error'])) {
+            throw new \Exception(
+                'Omniware Error: ' . $responseData['error']['message']
+            );
+        }
+
+        if (!isset($responseData['data']['signature'])) {
+            throw new \Exception('Signature missing in response');
+        }
+
+        return $responseData;
+    }
+}

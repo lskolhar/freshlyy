@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\RegisterUserController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 
 
 /*
@@ -83,3 +84,6 @@ Route::get('/orders', [OrderController::class, 'index'])
 Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])
     ->middleware('auth')
     ->name('orders.updateStatus');
+
+
+Route::middleware('auth')->post('/payment/create', [PaymentController::class, 'create']);
