@@ -89,3 +89,12 @@ Route::middleware('auth')->post('/payment/create', [PaymentController::class, 'c
 Route::post('/checkout', [PaymentController::class, 'initiatePayment'])
     ->middleware('auth')
     ->name('checkout.initiate');
+
+// Route::post('/payment/return', [PaymentController::class, 'handleReturn']);
+// Route::get('/payment/return', [PaymentController::class, 'handleRedirect']);
+
+// Route::post('/payment/return', [PaymentController::class, 'handleReturn'])
+//     ->name('payment.return');
+
+Route::match(['get', 'post'], '/payment/return', [PaymentController::class, 'handleReturn'])
+    ->name('payment.return');

@@ -115,6 +115,108 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+    public function handleReturn(Request $request)
+    {
+        \Log::info('Omniware Return Payload', $request->all());
+
+        $orderNumber = $request->input('order_id');
+        $transactionId = $request->input('transaction_id');
+        $responseCode = $request->input('response_code');
+        $receivedHash = $request->input('hash');
+
+        if (!$orderNumber) {
+            \Log::error('Missing order_id');
+            return response()->json(['error' => 'Invalid request'], 400);
+        }
+
+        $order = \App\Models\Order::where('order_number', $orderNumber)->first();
+
+        if (!$order) {
+            \Log::error('Order not found', ['order_number' => $orderNumber]);
+            return response()->json(['error' => 'Order not found'], 404);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Recalculate Hash EXACTLY like Omniware
+        |--------------------------------------------------------------------------
+        | 1. Remove 'hash' from payload
+        | 2. Remove null/empty values
+        | 3. Sort alphabetically
+        | 4. Start with salt
+        | 5. Append values with |
+        */
+
+        $payload = $request->except('hash');
+
+        // Remove null / empty values
+        $filtered = array_filter($payload, function ($value) {
+            return $value !== null && $value !== '';
+        });
+
+        // Sort alphabetically by key
+        ksort($filtered);
+
+        $salt = config('services.omniware.salt');
+
+        $hashString = $salt;
+
+        foreach ($filtered as $value) {
+            $hashString .= '|' . trim((string) $value);
+        }
+
+        $calculatedHash = strtoupper(hash('sha512', $hashString));
+        $receivedHash = strtoupper($receivedHash);
+
+        if ($calculatedHash !== $receivedHash) {
+
+            \Log::error('Hash mismatch', [
+                'hash_string' => $hashString,
+                'calculated' => $calculatedHash,
+                'received' => $receivedHash
+            ]);
+
+            $order->update([
+                'status' => \App\Models\Order::STATUS_FAILED
+            ]);
+
+            return response()->json(['error' => 'Hash mismatch'], 400);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Status Handling
+        |--------------------------------------------------------------------------
+        */
+
+        if ((string) $responseCode === '0') {
+
+            $order->update([
+                'status' => \App\Models\Order::STATUS_PAID,
+                'transaction_id' => $transactionId
+            ]);
+
+            // Clear cart after successful payment
+            session()->forget('cart_' . $order->user_id);
+
+            \Log::info('Order marked PAID', [
+                'order_number' => $orderNumber
+            ]);
+
+        } else {
+
+            $order->update([
+                'status' => \App\Models\Order::STATUS_FAILED
+            ]);
+
+            \Log::info('Order marked FAILED', [
+                'order_number' => $orderNumber
+            ]);
+        }
+
+        return redirect()->route('orders.index')
+            ->with('success', 'Payment processed successfully.');
+    }
 
 
 }

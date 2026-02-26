@@ -24,7 +24,7 @@ class PaymentService
             'return_url'     => env('OMNIWARE_RETURN_URL'),
             'mode'           => env('OMNIWARE_MODE'),
             'order_id'       => $order->order_number,
-            'amount'         => (string) ((int) $order->total_amount),
+            'amount'         => number_format((float) $order->total_amount, 2, '.', ''),
             'currency'       => 'INR',
             'description'    => 'Freshlyy Order Payment',
             'name'           => $user->name,

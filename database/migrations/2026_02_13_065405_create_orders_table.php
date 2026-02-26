@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('orders', function (Blueprint $table) {
@@ -14,11 +13,11 @@ return new class extends Migration
             $table->string('order_number')->unique();
 
             $table->foreignId('user_id')
-                  ->constrained()
-                  ->cascadeOnDelete();
+                ->constrained()
+                ->cascadeOnDelete();
 
             $table->decimal('total_amount', 10, 2);
-
+            $table->string('transaction_id')->nullable();
             $table->string('status')->default('pending');
 
             $table->timestamps();
