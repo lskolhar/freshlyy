@@ -90,11 +90,14 @@ Route::post('/checkout', [PaymentController::class, 'initiatePayment'])
     ->middleware('auth')
     ->name('checkout.initiate');
 
-// Route::post('/payment/return', [PaymentController::class, 'handleReturn']);
-// Route::get('/payment/return', [PaymentController::class, 'handleRedirect']);
-
-// Route::post('/payment/return', [PaymentController::class, 'handleReturn'])
-//     ->name('payment.return');
-
-Route::match(['get', 'post'], '/payment/return', [PaymentController::class, 'handleReturn'])
+Route::post('/payment/return', [PaymentController::class, 'handleReturn'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
     ->name('payment.return');
+
+Route::get('/payment/success/{order}', [PaymentController::class, 'success'])
+    ->middleware('auth')
+    ->name('payment.success');
+
+    Route::get('/payment/return', [PaymentController::class, 'handleRedirect'])
+    ->middleware('auth')
+    ->name('payment.redirect');

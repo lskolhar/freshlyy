@@ -65,6 +65,15 @@ class OrderController extends Controller
     {
         $user = auth()->user();
 
+        // If user has any PAID order, clear cart
+        $hasPaidOrder = Order::where('user_id', $user->id)
+            ->where('status', Order::STATUS_PAID)
+            ->exists();
+
+        if ($hasPaidOrder) {
+            session()->forget('cart_' . $user->id);
+        }
+
         if ($user->role === 'admin') {
             $orders = Order::with(['user', 'orderItems'])
                 ->latest()
