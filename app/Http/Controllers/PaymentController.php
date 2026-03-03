@@ -115,36 +115,48 @@ class PaymentController extends Controller
     {
         Log::info('Omniware Return Payload', $request->all());
 
-        $orderNumber   = $request->input('order_id');
+        $orderNumber = $request->input('order_id');
         $transactionId = $request->input('transaction_id');
-        $responseCode  = $request->input('response_code');
-        $amount        = $request->input('amount');
-        $receivedHash  = strtoupper($request->input('hash'));
+        $responseCode = $request->input('response_code');
+        $amount = $request->input('amount');
+        $receivedHash = strtoupper($request->input('hash'));
 
+        // STEP 1 — Validate order_id
         if (!$orderNumber) {
             return response()->json(['error' => 'Invalid order'], 400);
         }
 
+        // STEP 2 — Find Order
         $order = Order::where('order_number', $orderNumber)->first();
 
         if (!$order) {
+            Log::warning('Invalid Order Attempt', ['order_number' => $orderNumber]);
             return response()->json(['error' => 'Order not found'], 404);
         }
 
+        // STEP 3 — Prevent duplicate processing
         if ($order->status === Order::STATUS_PAID) {
             return response()->json(['status' => 'already_processed']);
         }
 
-        if ((float)$order->total_amount !== (float)$amount) {
+        // STEP 4 — Verify Amount
+        if ((float) $order->total_amount !== (float) $amount) {
 
             $order->update([
                 'status' => Order::STATUS_FAILED,
                 'payment_response' => json_encode($request->all())
             ]);
 
+            Log::error('Amount mismatch', [
+                'order_number' => $orderNumber,
+                'expected' => $order->total_amount,
+                'received' => $amount
+            ]);
+
             return response()->json(['status' => 'amount_mismatch']);
         }
 
+        // STEP 5 — Regenerate Hash
         $payload = $request->except('hash');
 
         $filtered = array_filter($payload, function ($value) {
@@ -157,11 +169,12 @@ class PaymentController extends Controller
         $hashString = $salt;
 
         foreach ($filtered as $value) {
-            $hashString .= '|' . trim((string)$value);
+            $hashString .= '|' . trim((string) $value);
         }
 
         $calculatedHash = strtoupper(hash('sha512', $hashString));
 
+        // STEP 6 — Compare Hash
         if ($calculatedHash !== $receivedHash) {
 
             $order->update([
@@ -169,10 +182,15 @@ class PaymentController extends Controller
                 'payment_response' => json_encode($request->all())
             ]);
 
+            Log::error('Hash verification failed', [
+                'order_number' => $orderNumber
+            ]);
+
             return response()->json(['status' => 'hash_failed']);
         }
 
-        if ((string)$responseCode === '0') {
+        // STEP 7 — Check response code
+        if ((string) $responseCode === '0') {
 
             $order->update([
                 'status' => Order::STATUS_PAID,
@@ -183,6 +201,7 @@ class PaymentController extends Controller
             return response()->json(['status' => 'success']);
         }
 
+        // STEP 8 — If response_code not success
         $order->update([
             'status' => Order::STATUS_FAILED,
             'payment_response' => json_encode($request->all())
@@ -196,7 +215,23 @@ class PaymentController extends Controller
     {
         $orderNumber = $request->input('order_id');
 
+        // Log session ID and cart contents before clearing
+        $sessionId = session()->getId();
+        $cartKey = 'cart_' . auth()->id();
+        $cartBefore = session()->get($cartKey);
+        \Log::info('Payment Redirect Debug', [
+            'session_id' => $sessionId,
+            'cart_key' => $cartKey,
+            'cart_before' => $cartBefore,
+            'order_number' => $orderNumber,
+            'user_id' => auth()->id(),
+        ]);
+
         if (!$orderNumber) {
+            \Log::warning('Payment Redirect: Invalid order_id', [
+                'session_id' => $sessionId,
+                'order_id' => $orderNumber,
+            ]);
             return redirect()->route('orders.index')
                 ->with('error', 'Invalid payment redirect.');
         }
@@ -206,18 +241,35 @@ class PaymentController extends Controller
             ->first();
 
         if (!$order) {
+            \Log::warning('Payment Redirect: Order not found', [
+                'session_id' => $sessionId,
+                'order_id' => $orderNumber,
+                'user_id' => auth()->id(),
+            ]);
             return redirect()->route('orders.index')
                 ->with('error', 'Order not found.');
         }
 
         if ($order->status === Order::STATUS_PAID) {
-
-            session()->forget('cart_' . auth()->id());
-
+            // Clear the cart and log after
+            session()->forget($cartKey);
+            $cartAfter = session()->get($cartKey);
+            \Log::info('Cart cleared after payment', [
+                'session_id' => $sessionId,
+                'cart_key' => $cartKey,
+                'cart_after' => $cartAfter,
+                'order_number' => $orderNumber,
+                'user_id' => auth()->id(),
+            ]);
             return redirect()->route('orders.index')
                 ->with('success', 'Payment successful.');
         }
 
+        \Log::warning('Payment Redirect: Payment failed', [
+            'session_id' => $sessionId,
+            'order_id' => $orderNumber,
+            'user_id' => auth()->id(),
+        ]);
         return redirect()->route('orders.index')
             ->with('error', 'Payment failed.');
     }

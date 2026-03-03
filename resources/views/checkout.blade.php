@@ -46,6 +46,11 @@
                 },
                 onSuccess: function (response) {
                     console.log("Payment Success:", response);
+
+                    // Wait briefly to ensure server POST is completed
+                    setTimeout(function () {
+                        window.location.href = "/payment/return?order_id={{ $order->order_number }}";
+                    }, 1000);
                 },
                 onFailure: function (response) {
                     console.log("Payment Failure:", response);
