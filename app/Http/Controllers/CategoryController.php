@@ -13,7 +13,7 @@ class CategoryController extends Controller
             ->with(['products' => fn($q) => $q->orderBy('name')])
             ->firstOrFail();
 
-        $cart = session()->get('cart', []);
+        $cart = session()->get('cart_' . auth()->id(), []);
 
         return view('category', compact('category', 'cart'));
     }

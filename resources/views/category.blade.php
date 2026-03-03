@@ -104,13 +104,37 @@
 
                 {{-- USER: Add to Cart --}}
                 @if($isUser)
-                    <form method="POST" action="{{ route('cart.add', $product) }}">
-                        @csrf
-                        <button type="submit"
-                                class="w-full text-white py-2 rounded transition {{ $theme['button'] }}">
-                            Add to Cart
-                        </button>
-                    </form>
+                    @if(isset($cart[$product->id]))
+                        <div class="flex items-center justify-between {{ $theme['bg'] }} rounded p-1">
+                            <form method="POST" action="{{ route('cart.update', $product) }}" class="m-0 p-0">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="quantity" value="{{ $cart[$product->id]['quantity'] - 1 }}">
+                                <button type="submit" class="w-10 h-10 flex items-center justify-center bg-white rounded-md shadow hover:bg-gray-50 text-gray-700 font-bold text-xl transition">
+                                    -
+                                </button>
+                            </form>
+                            
+                            <span class="font-bold text-lg {{ $theme['text'] }}">{{ $cart[$product->id]['quantity'] }}</span>
+                            
+                            <form method="POST" action="{{ route('cart.update', $product) }}" class="m-0 p-0">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="quantity" value="{{ $cart[$product->id]['quantity'] + 1 }}">
+                                <button type="submit" class="w-10 h-10 flex items-center justify-center bg-white rounded-md shadow hover:bg-gray-50 text-gray-700 font-bold text-xl transition">
+                                    +
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        <form method="POST" action="{{ route('cart.add', $product) }}">
+                            @csrf
+                            <button type="submit"
+                                    class="w-full text-white py-2 rounded transition {{ $theme['button'] }}">
+                                Add to Cart
+                            </button>
+                        </form>
+                    @endif
                 @endif
 
             </div>

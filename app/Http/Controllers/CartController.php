@@ -25,6 +25,11 @@ class CartController extends Controller
     public function index()
     {
         $cart = session()->get($this->cartKey(), []);
+        
+        uasort($cart, function($a, $b) {
+            return strcasecmp($a['name'], $b['name']);
+        });
+
         return view('cart', compact('cart'));
     }
 
