@@ -40,6 +40,19 @@ class PaymentController extends Controller
             'status' => Order::STATUS_PENDING,
         ]);
 
+        // 🔥 ADD THIS BLOCK
+        foreach ($cart as $productId => $item) {
+            \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $productId,
+                'product_name' => $item['name'],
+                'price' => $item['price'],
+                'quantity' => $item['quantity'],
+                'subtotal' => $item['price'] * $item['quantity'],
+            ]);
+        }
+        // 🔥 END BLOCK
+
         $signatureData = $this->paymentService->generateSignature($order);
 
         return view('checkout', [
