@@ -77,7 +77,7 @@
                 {{-- ADMIN CONTROLS --}}
                 @if($isAdmin)
                     <div class="absolute top-2 left-2 flex gap-2">
-                        <button onclick="openEditModal({{ $product->id }}, '{{ $product->name }}', {{ $product->price }})"
+                        <button onclick="openEditModal({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->price }}, '{{ addslashes($product->quantity) }}')"
                                 class="text-xs px-2 py-1 rounded bg-white shadow {{ $theme['text'] }}">
                             Edit ✏️
                         </button>
@@ -99,7 +99,7 @@
                 </h3>
 
                 <p class="text-gray-700 mb-3">
-                    ₹{{ number_format($product->price, 2) }}
+                    ₹{{ number_format($product->price, 2) }} <span class="text-sm font-normal text-gray-400 ml-1">/ {{ $product->quantity }}</span>
                 </p>
 
                 {{-- USER: Add to Cart --}}
@@ -131,6 +131,9 @@
             <input type="hidden" name="category_id" value="{{ $category->id }}">
 
             <input type="text" name="name" placeholder="Product name"
+                   class="w-full border p-2 mb-3 rounded" required>
+
+            <input type="text" name="quantity" placeholder="Quantity (e.g. 1 kg, 500g, 1 L)"
                    class="w-full border p-2 mb-3 rounded" required>
 
             <input type="number" name="price" placeholder="Price"
@@ -165,6 +168,9 @@
             <input type="text" id="editName" name="name"
                    class="w-full border p-2 mb-3 rounded" required>
 
+            <input type="text" id="editQuantity" name="quantity"
+                   class="w-full border p-2 mb-3 rounded" required>
+
             <input type="number" id="editPrice" name="price"
                    class="w-full border p-2 mb-4 rounded" required>
 
@@ -194,9 +200,10 @@
         document.getElementById('addProductModal').classList.add('hidden');
     }
 
-    function openEditModal(id, name, price) {
+    function openEditModal(id, name, price, quantity) {
         document.getElementById('editProductForm').action = `/products/${id}`;
         document.getElementById('editName').value = name;
+        document.getElementById('editQuantity').value = quantity;
         document.getElementById('editPrice').value = price;
         document.getElementById('editProductModal').classList.remove('hidden');
     }

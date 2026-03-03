@@ -19,38 +19,38 @@ class ProductSeeder extends Seeder
 
         Product::insert([
             // 🥛 DAIRY
-            ['category_id' => $dairy->id, 'name' => 'Milk', 'price' => 50],
-            ['category_id' => $dairy->id, 'name' => 'Toned Milk', 'price' => 55],
-            ['category_id' => $dairy->id, 'name' => 'Curd', 'price' => 45],
-            ['category_id' => $dairy->id, 'name' => 'Butter', 'price' => 60],
-            ['category_id' => $dairy->id, 'name' => 'Cheese', 'price' => 120],
-            ['category_id' => $dairy->id, 'name' => 'Paneer', 'price' => 180],
-            ['category_id' => $dairy->id, 'name' => 'Ghee', 'price' => 550],
+            ['category_id' => $dairy->id, 'name' => 'Milk', 'quantity' => '1 L', 'price' => 50],
+            ['category_id' => $dairy->id, 'name' => 'Toned Milk', 'quantity' => '1 L', 'price' => 55],
+            ['category_id' => $dairy->id, 'name' => 'Curd', 'quantity' => '500 g', 'price' => 45],
+            ['category_id' => $dairy->id, 'name' => 'Butter', 'quantity' => '100 g', 'price' => 60],
+            ['category_id' => $dairy->id, 'name' => 'Cheese', 'quantity' => '200 g', 'price' => 120],
+            ['category_id' => $dairy->id, 'name' => 'Paneer', 'quantity' => '200 g', 'price' => 180],
+            ['category_id' => $dairy->id, 'name' => 'Ghee', 'quantity' => '500 ml', 'price' => 550],
 
             // 🥦 VEGETABLES
-            ['category_id' => $vegetables->id, 'name' => 'Tomato', 'price' => 30],
-            ['category_id' => $vegetables->id, 'name' => 'Potato', 'price' => 40],
-            ['category_id' => $vegetables->id, 'name' => 'Onion', 'price' => 35],
-            ['category_id' => $vegetables->id, 'name' => 'Carrot', 'price' => 50],
-            ['category_id' => $vegetables->id, 'name' => 'Cabbage', 'price' => 45],
-            ['category_id' => $vegetables->id, 'name' => 'Cauliflower', 'price' => 60],
-            ['category_id' => $vegetables->id, 'name' => 'Spinach', 'price' => 25],
+            ['category_id' => $vegetables->id, 'name' => 'Tomato', 'quantity' => '1 kg', 'price' => 30],
+            ['category_id' => $vegetables->id, 'name' => 'Potato', 'quantity' => '1 kg', 'price' => 40],
+            ['category_id' => $vegetables->id, 'name' => 'Onion', 'quantity' => '1 kg', 'price' => 35],
+            ['category_id' => $vegetables->id, 'name' => 'Carrot', 'quantity' => '500 g', 'price' => 50],
+            ['category_id' => $vegetables->id, 'name' => 'Cabbage', 'quantity' => '1 pc', 'price' => 45],
+            ['category_id' => $vegetables->id, 'name' => 'Cauliflower', 'quantity' => '1 pc', 'price' => 60],
+            ['category_id' => $vegetables->id, 'name' => 'Spinach', 'quantity' => '1 bunch', 'price' => 25],
 
             // 🍎 FRUITS
-            ['category_id' => $fruits->id, 'name' => 'Apple', 'price' => 120],
-            ['category_id' => $fruits->id, 'name' => 'Banana', 'price' => 60],
-            ['category_id' => $fruits->id, 'name' => 'Orange', 'price' => 80],
-            ['category_id' => $fruits->id, 'name' => 'Mango', 'price' => 100],
-            ['category_id' => $fruits->id, 'name' => 'Grapes', 'price' => 90],
-            ['category_id' => $fruits->id, 'name' => 'Papaya', 'price' => 70],
+            ['category_id' => $fruits->id, 'name' => 'Apple', 'quantity' => '1 kg', 'price' => 120],
+            ['category_id' => $fruits->id, 'name' => 'Banana', 'quantity' => '1 dozen', 'price' => 60],
+            ['category_id' => $fruits->id, 'name' => 'Orange', 'quantity' => '1 kg', 'price' => 80],
+            ['category_id' => $fruits->id, 'name' => 'Mango', 'quantity' => '1 kg', 'price' => 100],
+            ['category_id' => $fruits->id, 'name' => 'Grapes', 'quantity' => '500 g', 'price' => 90],
+            ['category_id' => $fruits->id, 'name' => 'Papaya', 'quantity' => '1 pc', 'price' => 70],
 
             // 🍗 MEAT
-            ['category_id' => $meat->id, 'name' => 'Chicken', 'price' => 150],
-            ['category_id' => $meat->id, 'name' => 'Chicken Breast', 'price' => 220],
-            ['category_id' => $meat->id, 'name' => 'Chicken Curry Cut', 'price' => 180],
-            ['category_id' => $meat->id, 'name' => 'Mutton', 'price' => 200],
-            ['category_id' => $meat->id, 'name' => 'Mutton Curry Cut', 'price' => 280],
-            ['category_id' => $meat->id, 'name' => 'Fish', 'price' => 160],
+            ['category_id' => $meat->id, 'name' => 'Chicken', 'quantity' => '1 kg', 'price' => 150],
+            ['category_id' => $meat->id, 'name' => 'Chicken Breast', 'quantity' => '500 g', 'price' => 220],
+            ['category_id' => $meat->id, 'name' => 'Chicken Curry Cut', 'quantity' => '500 g', 'price' => 180],
+            ['category_id' => $meat->id, 'name' => 'Mutton', 'quantity' => '500 g', 'price' => 200],
+            ['category_id' => $meat->id, 'name' => 'Mutton Curry Cut', 'quantity' => '500 g', 'price' => 280],
+            ['category_id' => $meat->id, 'name' => 'Fish', 'quantity' => '1 kg', 'price' => 160],
         ]);
 
     }

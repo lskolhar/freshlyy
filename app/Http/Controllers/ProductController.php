@@ -13,12 +13,14 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
+            'quantity' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
         ]);
 
         Product::create([
             'name' => $request->name,
             'price' => $request->price,
+            'quantity' => $request->quantity,
             'category_id' => $request->category_id,
         ]);
 
@@ -30,11 +32,13 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
+            'quantity' => 'required|string|max:255',
         ]);
 
         $product->update([
             'name' => $request->name,
             'price' => $request->price,
+            'quantity' => $request->quantity,
         ]);
 
         return back()->with('success', 'Product updated');
