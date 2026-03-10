@@ -21,7 +21,7 @@ class PaymentController extends Controller
     {
         $user = auth()->user();
 
-        $cartKey = 'cart_' . $user->id;
+        $cartKey = 'cart_'.$user->id;
         $cart = session()->get($cartKey, []);
 
         if (empty($cart)) {
@@ -34,7 +34,7 @@ class PaymentController extends Controller
         }
 
         $order = Order::create([
-            'order_number' => 'ORD-' . strtoupper(Str::random(8)),
+            'order_number' => 'ORD-'.strtoupper(Str::random(8)),
             'user_id' => $user->id,
             'total_amount' => $total,
             'status' => Order::STATUS_PENDING,
@@ -68,11 +68,11 @@ class PaymentController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $cart = session()->get('cart_' . $user->id, []);
+        $cart = session()->get('cart_'.$user->id, []);
 
         if (empty($cart)) {
             return response()->json(['error' => 'Cart is empty'], 400);
@@ -87,7 +87,7 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Invalid cart total'], 400);
         }
 
-        $orderNumber = 'ORD-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
+        $orderNumber = 'ORD-'.now()->format('YmdHis').'-'.strtoupper(Str::random(4));
 
         $order = Order::create([
             'order_number' => $orderNumber,
@@ -107,18 +107,18 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => true,
                 'order_number' => $order->order_number,
-                'signature' => $signatureResponse['data']['signature'] ?? null
+                'signature' => $signatureResponse['data']['signature'] ?? null,
             ]);
         } catch (\Exception $e) {
 
             Log::error('Payment Signature Error', [
                 'order_number' => $order->order_number,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -135,15 +135,16 @@ class PaymentController extends Controller
         $receivedHash = strtoupper($request->input('hash'));
 
         // STEP 1 — Validate order_id
-        if (!$orderNumber) {
+        if (! $orderNumber) {
             return response()->json(['error' => 'Invalid order'], 400);
         }
 
         // STEP 2 — Find Order
         $order = Order::where('order_number', $orderNumber)->first();
 
-        if (!$order) {
+        if (! $order) {
             Log::warning('Invalid Order Attempt', ['order_number' => $orderNumber]);
+
             return response()->json(['error' => 'Order not found'], 404);
         }
 
@@ -157,13 +158,13 @@ class PaymentController extends Controller
 
             $order->update([
                 'status' => Order::STATUS_FAILED,
-                'payment_response' => json_encode($request->all())
+                'payment_response' => json_encode($request->all()),
             ]);
 
             Log::error('Amount mismatch', [
                 'order_number' => $orderNumber,
                 'expected' => $order->total_amount,
-                'received' => $amount
+                'received' => $amount,
             ]);
 
             return response()->json(['status' => 'amount_mismatch']);
@@ -182,7 +183,7 @@ class PaymentController extends Controller
         $hashString = $salt;
 
         foreach ($filtered as $value) {
-            $hashString .= '|' . trim((string) $value);
+            $hashString .= '|'.trim((string) $value);
         }
 
         $calculatedHash = strtoupper(hash('sha512', $hashString));
@@ -192,11 +193,11 @@ class PaymentController extends Controller
 
             $order->update([
                 'status' => Order::STATUS_FAILED,
-                'payment_response' => json_encode($request->all())
+                'payment_response' => json_encode($request->all()),
             ]);
 
             Log::error('Hash verification failed', [
-                'order_number' => $orderNumber
+                'order_number' => $orderNumber,
             ]);
 
             return response()->json(['status' => 'hash_failed']);
@@ -208,7 +209,7 @@ class PaymentController extends Controller
             $order->update([
                 'status' => Order::STATUS_PAID,
                 'transaction_id' => $transactionId,
-                'payment_response' => json_encode($request->all())
+                'payment_response' => json_encode($request->all()),
             ]);
 
             return response()->json(['status' => 'success']);
@@ -217,7 +218,7 @@ class PaymentController extends Controller
         // STEP 8 — If response_code not success
         $order->update([
             'status' => Order::STATUS_FAILED,
-            'payment_response' => json_encode($request->all())
+            'payment_response' => json_encode($request->all()),
         ]);
 
         return response()->json(['status' => 'failed']);
@@ -230,7 +231,7 @@ class PaymentController extends Controller
 
         // Log session ID and cart contents before clearing
         $sessionId = session()->getId();
-        $cartKey = 'cart_' . auth()->id();
+        $cartKey = 'cart_'.auth()->id();
         $cartBefore = session()->get($cartKey);
         \Log::info('Payment Redirect Debug', [
             'session_id' => $sessionId,
@@ -240,11 +241,12 @@ class PaymentController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-        if (!$orderNumber) {
+        if (! $orderNumber) {
             \Log::warning('Payment Redirect: Invalid order_id', [
                 'session_id' => $sessionId,
                 'order_id' => $orderNumber,
             ]);
+
             return redirect()->route('orders.index')
                 ->with('error', 'Invalid payment redirect.');
         }
@@ -253,12 +255,13 @@ class PaymentController extends Controller
             ->where('user_id', auth()->id())
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             \Log::warning('Payment Redirect: Order not found', [
                 'session_id' => $sessionId,
                 'order_id' => $orderNumber,
                 'user_id' => auth()->id(),
             ]);
+
             return redirect()->route('orders.index')
                 ->with('error', 'Order not found.');
         }
@@ -274,6 +277,7 @@ class PaymentController extends Controller
                 'order_number' => $orderNumber,
                 'user_id' => auth()->id(),
             ]);
+
             return redirect()->route('orders.index')
                 ->with('success', 'Payment successful.');
         }
@@ -283,6 +287,7 @@ class PaymentController extends Controller
             'order_id' => $orderNumber,
             'user_id' => auth()->id(),
         ]);
+
         return redirect()->route('orders.index')
             ->with('error', 'Payment failed.');
     }

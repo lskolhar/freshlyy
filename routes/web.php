@@ -1,14 +1,13 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\SessionController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\RegisterUserController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
-
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\RegisterUserController;
+use App\Http\Controllers\SessionController;
+use Illuminate\Support\Facades\Route;
 
 /*
  Home
@@ -65,15 +64,12 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/cart/{product}', [CartController::class, 'remove'])->name('cart.remove');
 });
 
-
-
-// admin only 
+// admin only
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/products', [ProductController::class, 'store'])->name('products.store');
     Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 });
-
 
 Route::get('/orders', [OrderController::class, 'index'])
     ->middleware('auth')
@@ -82,7 +78,6 @@ Route::get('/orders', [OrderController::class, 'index'])
 Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])
     ->middleware('auth')
     ->name('orders.updateStatus');
-
 
 Route::middleware('auth')->post('/payment/create', [PaymentController::class, 'create']);
 
@@ -98,6 +93,6 @@ Route::get('/payment/success/{order}', [PaymentController::class, 'success'])
     ->middleware('auth')
     ->name('payment.success');
 
-    Route::get('/payment/return', [PaymentController::class, 'handleRedirect'])
+Route::get('/payment/return', [PaymentController::class, 'handleRedirect'])
     ->middleware('auth')
     ->name('payment.redirect');

@@ -20,22 +20,22 @@ class PaymentService
         $user = $order->user;
 
         $params = [
-            'api_key'        => env('OMNIWARE_API_KEY'),
-            'return_url'     => env('OMNIWARE_RETURN_URL'),
-            'mode'           => env('OMNIWARE_MODE'),
-            'order_id'       => $order->order_number,
-            'amount'         => number_format((float) $order->total_amount, 2, '.', ''),
-            'currency'       => 'INR',
-            'description'    => 'Freshlyy Order Payment',
-            'name'           => $user->name,
-            'email'          => $user->email,
-            'phone'          => $user->phone ?? '9999999999',
+            'api_key' => env('OMNIWARE_API_KEY'),
+            'return_url' => env('OMNIWARE_RETURN_URL'),
+            'mode' => env('OMNIWARE_MODE'),
+            'order_id' => $order->order_number,
+            'amount' => number_format((float) $order->total_amount, 2, '.', ''),
+            'currency' => 'INR',
+            'description' => 'Freshlyy Order Payment',
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone ?? '9999999999',
             'address_line_1' => 'Test address',
             'address_line_2' => '',
-            'city'           => 'Bangalore',
-            'state'          => 'Karnataka',
-            'zip_code'       => '560043',
-            'country'        => 'India',
+            'city' => 'Bangalore',
+            'state' => 'Karnataka',
+            'zip_code' => '560043',
+            'country' => 'India',
         ];
 
         $hash = $this->hashService->generate(
@@ -47,21 +47,21 @@ class PaymentService
 
         Log::info('Omniware Signature Request', [
             'order_number' => $order->order_number,
-            'amount'       => $order->total_amount,
+            'amount' => $order->total_amount,
         ]);
 
         $response = Http::timeout(30)
             ->post(
-                env('OMNIWARE_BASE_URL') . '/v2/getpaymentrequestsignature',
+                env('OMNIWARE_BASE_URL').'/v2/getpaymentrequestsignature',
                 $params
             );
 
         Log::info('Omniware Signature Response', [
             'status' => $response->status(),
-            'body'   => $response->json(),
+            'body' => $response->json(),
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new \Exception('Signature API HTTP Error');
         }
 
@@ -69,11 +69,11 @@ class PaymentService
 
         if (isset($responseData['error'])) {
             throw new \Exception(
-                'Omniware Error: ' . $responseData['error']['message']
+                'Omniware Error: '.$responseData['error']['message']
             );
         }
 
-        if (!isset($responseData['data']['signature'])) {
+        if (! isset($responseData['data']['signature'])) {
             throw new \Exception('Signature missing in response');
         }
 

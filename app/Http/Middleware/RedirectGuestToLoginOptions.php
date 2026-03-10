@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class RedirectGuestToLoginOptions
 {
@@ -16,7 +15,7 @@ class RedirectGuestToLoginOptions
     public function handle(Request $request, Closure $next)
     {
         // 👇 THIS IS WHERE IT GOES
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return redirect()->route('login.options');
         }
 

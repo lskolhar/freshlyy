@@ -1,11 +1,10 @@
 <?php
 
 namespace Database\Seeders;
+
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Database\Seeder;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-
 
 class ProductSeeder extends Seeder
 {
@@ -15,7 +14,6 @@ class ProductSeeder extends Seeder
         $vegetables = Category::where('slug', 'vegetables')->firstOrFail();
         $fruits = Category::where('slug', 'fruits')->firstOrFail();
         $meat = Category::where('slug', 'meat')->firstOrFail();
-
 
         Product::insert([
             // 🥛 DAIRY

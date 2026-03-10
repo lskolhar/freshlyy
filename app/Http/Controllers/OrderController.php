@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
@@ -12,14 +11,14 @@ class OrderController extends Controller
 {
     private function cartKey()
     {
-        return 'cart_' . auth()->id();
+        return 'cart_'.auth()->id();
     }
 
     public function store(Request $request)
     {
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return redirect()->back()->with('error', 'Please login first.');
         }
 
@@ -38,7 +37,7 @@ class OrderController extends Controller
             }
 
             $order = Order::create([
-                'order_number' => 'ORD-' . strtoupper(uniqid()),
+                'order_number' => 'ORD-'.strtoupper(uniqid()),
                 'user_id' => $user->id,
                 'total_amount' => $total,
                 'status' => Order::STATUS_PENDING,
@@ -55,12 +54,12 @@ class OrderController extends Controller
                 ]);
             }
 
-
             session()->forget($this->cartKey());
         });
 
         return redirect('/')->with('success', 'Order placed successfully.');
     }
+
     public function index()
     {
         $user = auth()->user();
@@ -71,7 +70,7 @@ class OrderController extends Controller
             ->exists();
 
         if ($hasPaidOrder) {
-            session()->forget('cart_' . $user->id);
+            session()->forget('cart_'.$user->id);
         }
 
         if ($user->role === 'admin') {
@@ -87,6 +86,7 @@ class OrderController extends Controller
 
         return view('orders', compact('orders'));
     }
+
     public function updateStatus(Request $request, Order $order)
     {
         if (auth()->user()->role !== 'admin') {
@@ -107,7 +107,4 @@ class OrderController extends Controller
 
         return redirect()->back()->with('success', 'Order status updated.');
     }
-
-
-
 }

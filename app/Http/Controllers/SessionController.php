@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,7 +20,7 @@ class SessionController extends Controller
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials)) {
             return back()->withErrors([
                 'email' => 'Invalid credentials.',
             ]);
@@ -38,6 +37,7 @@ class SessionController extends Controller
     public function destroy()
     {
         Auth::logout();
+
         return redirect('/');
     }
 }

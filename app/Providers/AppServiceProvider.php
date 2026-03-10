@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         if (app()->environment('local') && request()->header('x-forwarded-host')) {
-            URL::forceRootUrl('https://' . request()->header('x-forwarded-host'));
+            URL::forceRootUrl('https://'.request()->header('x-forwarded-host'));
             URL::forceScheme('https');
         }
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 
 class CartController extends Controller
 {
@@ -15,18 +14,18 @@ class CartController extends Controller
 
     private function cartKey()
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             abort(403, 'Unauthorized');
         }
 
-        return 'cart_' . auth()->id();
+        return 'cart_'.auth()->id();
     }
 
     public function index()
     {
         $cart = session()->get($this->cartKey(), []);
-        
-        uasort($cart, function($a, $b) {
+
+        uasort($cart, function ($a, $b) {
             return strcasecmp($a['name'], $b['name']);
         });
 
@@ -57,13 +56,13 @@ class CartController extends Controller
     public function update(Request $request, Product $product)
     {
         $request->validate([
-            'quantity' => 'required|integer|min:0'
+            'quantity' => 'required|integer|min:0',
         ]);
 
         $key = $this->cartKey();
         $cart = session()->get($key, []);
 
-        if (!isset($cart[$product->id])) {
+        if (! isset($cart[$product->id])) {
             return back();
         }
 
@@ -109,14 +108,11 @@ class CartController extends Controller
 
         if ($order) {
             $order->update([
-                'status' => 'cancelled'
+                'status' => 'cancelled',
             ]);
         }
 
         return redirect()->route('home')
             ->with('success', 'Cart cleared and order cancelled.');
     }
-
-
-
 }

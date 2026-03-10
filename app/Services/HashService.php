@@ -21,7 +21,7 @@ class HashService
         $hashString = $salt;
 
         foreach ($filtered as $value) {
-            $hashString .= '|' . trim($value);
+            $hashString .= '|'.trim($value);
         }
 
         return strtoupper(hash('sha512', $hashString));

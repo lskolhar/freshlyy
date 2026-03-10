@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
@@ -15,7 +15,7 @@ class Order extends Model
         'total_amount',
         'status',
         'transaction_id',
-        'payment_reference'
+        'payment_reference',
     ];
 
     protected $casts = [
@@ -24,10 +24,12 @@ class Order extends Model
     ];
 
     const STATUS_PENDING = 'pending';
-    const STATUS_PAID    = 'paid';
-    const STATUS_FAILED  = 'failed';
-    const STATUS_CANCELLED = 'cancelled';
 
+    const STATUS_PAID = 'paid';
+
+    const STATUS_FAILED = 'failed';
+
+    const STATUS_CANCELLED = 'cancelled';
 
     public function user()
     {
