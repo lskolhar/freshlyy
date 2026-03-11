@@ -46,8 +46,6 @@ Route::post('/logout', [SessionController::class, 'destroy'])
  Protected Pages (Authenticated users)
 */
 Route::middleware('auth')->group(function () {
-
-    // Categories (Dairy, Vegetables, Fruits, Meat)
     Route::get('/category/{slug}', [CategoryController::class, 'show']);
 });
 
