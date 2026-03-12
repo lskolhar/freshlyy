@@ -110,7 +110,7 @@ class PaymentController extends Controller
                 'signature' => $signatureResponse['data']['signature'] ?? null,
             ]);
         } catch (\Exception $e) {
-
+            report($e);
             Log::error('Payment Signature Error', [
                 'order_number' => $order->order_number,
                 'message' => $e->getMessage(),
@@ -233,7 +233,7 @@ class PaymentController extends Controller
         $sessionId = session()->getId();
         $cartKey = 'cart_'.auth()->id();
         $cartBefore = session()->get($cartKey);
-        \Log::info('Payment Redirect Debug', [
+        \Log::debug('Payment Redirect Debug', [
             'session_id' => $sessionId,
             'cart_key' => $cartKey,
             'cart_before' => $cartBefore,
