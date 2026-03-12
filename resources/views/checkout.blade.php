@@ -36,6 +36,7 @@
                 amount: "{{ number_format($amount, 2, '.', '') }}",
                 currency: "INR",
                 order_id: "{{ $order->order_number }}",
+                reference_id: "{{ $reference_id }}",
                 return_url: "{{ config('services.omniware.return_url') }}",
                 signature: "{{ $signature }}",
                 gateway: {

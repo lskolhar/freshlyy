@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Transaction;
 use App\Services\PaymentService;
+use App\Services\TransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -11,68 +13,23 @@ use Illuminate\Support\Str;
 class PaymentController extends Controller
 {
     protected $paymentService;
-
-    public function __construct(PaymentService $paymentService)
-    {
+    protected $transactionService;
+    public function __construct(
+        PaymentService $paymentService,
+        TransactionService $transactionService
+    ) {
         $this->paymentService = $paymentService;
+        $this->transactionService = $transactionService;
     }
-
-    public function initiatePayment(Request $request)
-    {
-        $user = auth()->user();
-
-        $cartKey = 'cart_'.$user->id;
-        $cart = session()->get($cartKey, []);
-
-        if (empty($cart)) {
-            return redirect()->back()->with('error', 'Cart is empty.');
-        }
-
-        $total = 0;
-        foreach ($cart as $item) {
-            $total += $item['price'] * $item['quantity'];
-        }
-
-        $order = Order::create([
-            'order_number' => 'ORD-'.strtoupper(Str::random(8)),
-            'user_id' => $user->id,
-            'total_amount' => $total,
-            'status' => Order::STATUS_PENDING,
-        ]);
-
-        // 🔥 ADD THIS BLOCK
-        foreach ($cart as $productId => $item) {
-            \App\Models\OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $productId,
-                'product_name' => $item['name'],
-                'price' => $item['price'],
-                'quantity' => $item['quantity'],
-                'subtotal' => $item['price'] * $item['quantity'],
-            ]);
-        }
-        // 🔥 END BLOCK
-
-        $signatureData = $this->paymentService->generateSignature($order);
-
-        return view('checkout', [
-            'order' => $order,
-            'signature' => $signatureData['data']['signature'] ?? null,
-            'apiKey' => config('services.omniware.api_key'),
-            'amount' => $order->total_amount,
-            'baseUrl' => config('services.omniware.base_url'),
-        ]);
-    }
-
     public function create(Request $request)
     {
         $user = auth()->user();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $cart = session()->get('cart_'.$user->id, []);
+        $cart = session()->get('cart_' . $user->id, []);
 
         if (empty($cart)) {
             return response()->json(['error' => 'Cart is empty'], 400);
@@ -87,7 +44,7 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Invalid cart total'], 400);
         }
 
-        $orderNumber = 'ORD-'.now()->format('YmdHis').'-'.strtoupper(Str::random(4));
+        $orderNumber = 'ORD-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
 
         $order = Order::create([
             'order_number' => $orderNumber,
@@ -122,6 +79,55 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+    public function initiatePayment(Request $request)
+    {
+        $user = auth()->user();
+
+        $cartKey = 'cart_' . $user->id;
+        $cart = session()->get($cartKey, []);
+
+        if (empty($cart)) {
+            return redirect()->back()->with('error', 'Cart is empty.');
+        }
+
+        $total = 0;
+        foreach ($cart as $item) {
+            $total += $item['price'] * $item['quantity'];
+        }
+
+        $order = Order::create([
+            'order_number' => 'ORD-' . strtoupper(Str::random(8)),
+            'user_id' => $user->id,
+            'total_amount' => $total,
+            'status' => Order::STATUS_PENDING,
+        ]);
+
+        $transaction = $this->transactionService->createTransaction($order);
+
+        foreach ($cart as $productId => $item) {
+            \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $productId,
+                'product_name' => $item['name'],
+                'price' => $item['price'],
+                'quantity' => $item['quantity'],
+                'subtotal' => $item['price'] * $item['quantity'],
+            ]);
+        }
+
+        $signatureData = $this->paymentService->generateSignature($order);
+
+        return view('checkout', [
+            'order' => $order,
+            'transaction' => $transaction,
+            'reference_id' => $transaction->reference_id,
+            'signature' => $signatureData['data']['signature'] ?? null,
+            'apiKey' => config('services.omniware.api_key'),
+            'amount' => $order->total_amount,
+            'baseUrl' => config('services.omniware.base_url'),
+        ]);
+    }
+
 
     // SERVER-TO-SERVER VERIFICATION
     public function handleReturn(Request $request)
@@ -133,27 +139,61 @@ class PaymentController extends Controller
         $responseCode = $request->input('response_code');
         $amount = $request->input('amount');
         $receivedHash = strtoupper($request->input('hash'));
+        $referenceId = $request->input('reference_id');
 
-        // STEP 1 — Validate order_id
-        if (! $orderNumber) {
-            return response()->json(['error' => 'Invalid order'], 400);
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 1 — Find Transaction using reference_id
+        |--------------------------------------------------------------------------
+        */
+
+        $order = null;
+        $transaction = null;
+
+        if ($orderNumber) {
+
+            $order = Order::where('order_number', $orderNumber)->first();
+
+            if ($order) {
+                $transaction = Transaction::where('order_id', $order->id)->first();
+            }
         }
 
-        // STEP 2 — Find Order
-        $order = Order::where('order_number', $orderNumber)->first();
+        /*
+        |--------------------------------------------------------------------------
+        | FALLBACK — Use order_number if reference not found
+        |--------------------------------------------------------------------------
+        */
 
-        if (! $order) {
-            Log::warning('Invalid Order Attempt', ['order_number' => $orderNumber]);
+        if (!$order && $orderNumber) {
+            $order = Order::where('order_number', $orderNumber)->first();
+        }
+
+        if (!$order) {
+            Log::warning('Invalid Order Attempt', [
+                'order_number' => $orderNumber,
+                'reference_id' => $referenceId
+            ]);
 
             return response()->json(['error' => 'Order not found'], 404);
         }
 
-        // STEP 3 — Prevent duplicate processing
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 2 — Prevent duplicate processing
+        |--------------------------------------------------------------------------
+        */
+
         if ($order->status === Order::STATUS_PAID) {
             return response()->json(['status' => 'already_processed']);
         }
 
-        // STEP 4 — Verify Amount
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 3 — Verify Amount
+        |--------------------------------------------------------------------------
+        */
+
         if ((float) $order->total_amount !== (float) $amount) {
 
             $order->update([
@@ -170,7 +210,12 @@ class PaymentController extends Controller
             return response()->json(['status' => 'amount_mismatch']);
         }
 
-        // STEP 5 — Regenerate Hash
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 4 — Regenerate Hash
+        |--------------------------------------------------------------------------
+        */
+
         $payload = $request->except('hash');
 
         $filtered = array_filter($payload, function ($value) {
@@ -183,12 +228,17 @@ class PaymentController extends Controller
         $hashString = $salt;
 
         foreach ($filtered as $value) {
-            $hashString .= '|'.trim((string) $value);
+            $hashString .= '|' . trim((string) $value);
         }
 
         $calculatedHash = strtoupper(hash('sha512', $hashString));
 
-        // STEP 6 — Compare Hash
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 5 — Compare Hash
+        |--------------------------------------------------------------------------
+        */
+
         if ($calculatedHash !== $receivedHash) {
 
             $order->update([
@@ -203,19 +253,42 @@ class PaymentController extends Controller
             return response()->json(['status' => 'hash_failed']);
         }
 
-        // STEP 7 — Check response code
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 6 — Payment Success
+        |--------------------------------------------------------------------------
+        */
+
         if ((string) $responseCode === '0') {
 
-            $order->update([
-                'status' => Order::STATUS_PAID,
-                'transaction_id' => $transactionId,
-                'payment_response' => json_encode($request->all()),
-            ]);
+            // Update using TransactionService if transaction exists
+            if ($transaction) {
+
+                $this->transactionService->markTransactionPaid(
+                    $transaction->reference_id,
+                    $transactionId
+                );
+
+            } else {
+
+                // fallback if transaction missing
+                $order->update([
+                    'status' => Order::STATUS_PAID,
+                    'transaction_id' => $transactionId,
+                    'payment_response' => json_encode($request->all()),
+                ]);
+
+            }
 
             return response()->json(['status' => 'success']);
         }
 
-        // STEP 8 — If response_code not success
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 7 — Payment Failed
+        |--------------------------------------------------------------------------
+        */
+
         $order->update([
             'status' => Order::STATUS_FAILED,
             'payment_response' => json_encode($request->all()),
@@ -231,7 +304,7 @@ class PaymentController extends Controller
 
         // Log session ID and cart contents before clearing
         $sessionId = session()->getId();
-        $cartKey = 'cart_'.auth()->id();
+        $cartKey = 'cart_' . auth()->id();
         $cartBefore = session()->get($cartKey);
         \Log::debug('Payment Redirect Debug', [
             'session_id' => $sessionId,
@@ -241,7 +314,7 @@ class PaymentController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-        if (! $orderNumber) {
+        if (!$orderNumber) {
             \Log::warning('Payment Redirect: Invalid order_id', [
                 'session_id' => $sessionId,
                 'order_id' => $orderNumber,
@@ -255,7 +328,7 @@ class PaymentController extends Controller
             ->where('user_id', auth()->id())
             ->first();
 
-        if (! $order) {
+        if (!$order) {
             \Log::warning('Payment Redirect: Order not found', [
                 'session_id' => $sessionId,
                 'order_id' => $orderNumber,
