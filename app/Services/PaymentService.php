@@ -52,7 +52,7 @@ class PaymentService
 
         $response = Http::timeout(30)
             ->post(
-                env('OMNIWARE_BASE_URL').'/v2/getpaymentrequestsignature',
+                env('OMNIWARE_BASE_URL') . '/v2/getpaymentrequestsignature',
                 $params
             );
 
@@ -61,7 +61,7 @@ class PaymentService
             'body' => $response->json(),
         ]);
 
-        if (! $response->successful()) {
+        if (!$response->successful()) {
             throw new \Exception('Signature API HTTP Error');
         }
 
@@ -69,14 +69,113 @@ class PaymentService
 
         if (isset($responseData['error'])) {
             throw new \Exception(
-                'Omniware Error: '.$responseData['error']['message']
+                'Omniware Error: ' . $responseData['error']['message']
             );
         }
 
-        if (! isset($responseData['data']['signature'])) {
+        if (!isset($responseData['data']['signature'])) {
             throw new \Exception('Signature missing in response');
         }
 
         return $responseData;
+    }
+    public function verifyReturn($request)
+    {
+        $orderNumber = $request->input('order_id');
+        $transactionId = $request->input('transaction_id');
+        $responseCode = $request->input('response_code');
+        $amount = $request->input('amount');
+        $receivedHash = strtoupper($request->input('hash'));
+
+        $order = \App\Models\Order::where('order_number', $orderNumber)->first();
+
+        if (!$order) {
+            return [
+                'success' => false,
+                'status' => 'order_not_found'
+            ];
+        }
+
+        if ($order->status === \App\Models\Order::STATUS_PAID) {
+            return [
+                'success' => false,
+                'status' => 'already_processed'
+            ];
+        }
+
+        if ((float) $order->total_amount !== (float) $amount) {
+
+            $order->update([
+                'status' => \App\Models\Order::STATUS_FAILED,
+                'payment_response' => json_encode($request->all())
+            ]);
+
+            return [
+                'success' => false,
+                'status' => 'amount_mismatch'
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hash Verification
+        |--------------------------------------------------------------------------
+        */
+
+        $payload = $request->except('hash');
+
+        $filtered = array_filter($payload, function ($value) {
+            return $value !== null && $value !== '';
+        });
+
+        ksort($filtered);
+
+        $salt = config('services.omniware.salt');
+
+        $hashString = $salt;
+
+        foreach ($filtered as $value) {
+            $hashString .= '|' . trim((string) $value);
+        }
+
+        $calculatedHash = strtoupper(hash('sha512', $hashString));
+
+        if ($calculatedHash !== $receivedHash) {
+
+            $order->update([
+                'status' => Order::STATUS_FAILED,
+                'payment_response' => json_encode($request->all())
+            ]);
+
+            return [
+                'success' => false,
+                'status' => 'hash_failed'
+            ];
+        }
+
+        if ((string) $responseCode === '0') {
+
+            $order->update([
+                'status' => Order::STATUS_PAID,
+                'transaction_id' => $transactionId,
+                'payment_response' => json_encode($request->all())
+            ]);
+
+            return [
+                'success' => true,
+                'order' => $order,
+                'transaction_id' => $transactionId
+            ];
+        }
+
+        $order->update([
+            'status' => \App\Models\Order::STATUS_FAILED,
+            'payment_response' => json_encode($request->all())
+        ]);
+
+        return [
+            'success' => false,
+            'status' => 'payment_failed'
+        ];
     }
 }

@@ -47,7 +47,7 @@ class TransactionService
     {
         $transaction = $this->findByReference($referenceId);
 
-        if (! $transaction) {
+        if (!$transaction) {
             Log::warning('Transaction not found', [
                 'reference_id' => $referenceId
             ]);
@@ -80,5 +80,9 @@ class TransactionService
         }
 
         return $transaction;
+    }
+    public function findByOrderId($orderId)
+    {
+        return Transaction::where('order_id', $orderId)->first();
     }
 }
