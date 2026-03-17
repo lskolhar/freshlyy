@@ -32,7 +32,7 @@ class PaymentController extends Controller
 
     public function initiatePayment(Request $request)
     {
-        $user = auth()->user();
+        $user = $request->user();
 
         if (!$user) {
             abort(401);
@@ -112,7 +112,7 @@ class PaymentController extends Controller
 
         $order = $this->orderService->getUserOrder(
             $orderNumber,
-            auth()->id()
+            $request->user()->id
         );
 
         if (!$order) {
@@ -122,7 +122,7 @@ class PaymentController extends Controller
 
         if ($order->status === 'paid') {
 
-            $this->orderService->clearUserCart(auth()->id());
+            $this->orderService->clearUserCart($request->user()->id);
 
             return redirect()->route('orders.index')
                 ->with('success', 'Payment successful.');
