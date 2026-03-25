@@ -32,17 +32,13 @@ class TransactionService
         return 'TXN_' . time() . '_' . strtoupper(Str::random(5));
     }
 
-    /**
-     * Find transaction using reference_id
-     */
+    
     public function findByReference($referenceId)
     {
         return Transaction::where('reference_id', $referenceId)->first();
     }
 
-    /**
-     * Mark transaction as paid
-     */
+    
     public function markTransactionPaid($referenceId, $gatewayTransactionId = null)
     {
         $transaction = $this->findByReference($referenceId);
@@ -55,7 +51,6 @@ class TransactionService
             return null;
         }
 
-        // Prevent duplicate processing
         if ($transaction->status === 'paid') {
 
             Log::info('Duplicate callback ignored', [

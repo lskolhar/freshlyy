@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Transaction;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\TransactionService;
@@ -74,6 +75,11 @@ class PaymentController extends Controller
         $verification = $this->paymentService->verifyReturn($request);
 
         if (!$verification['success']) {
+
+            Log::warning('Verification failed', [
+                'status' => $verification['status']
+            ]);
+
             return response()->json([
                 'status' => $verification['status']
             ]);
@@ -82,15 +88,26 @@ class PaymentController extends Controller
         $order = $verification['order'];
         $transactionId = $verification['transaction_id'];
 
-        $transaction = $this->transactionService
-            ->findByOrderId($order->id);
+        $transaction = Transaction::where('order_id', $order->id)->first();
 
-        if ($transaction) {
-            $this->transactionService->markTransactionPaid(
-                $transaction->reference_id,
-                $transactionId
-            );
+        if (!$transaction) {
+
+            Log::error('Transaction not found', [
+                'order_id' => $order->id
+            ]);
+
+            return response()->json(['status' => 'transaction_not_found']);
         }
+
+        $this->transactionService->markTransactionPaid(
+            $transaction->reference_id,
+            $transactionId
+        );
+
+        Log::info('Payment processed successfully', [
+            'order_id' => $order->id,
+            'reference_id' => $transaction->reference_id
+        ]);
 
         return response()->json(['status' => 'success']);
     }
