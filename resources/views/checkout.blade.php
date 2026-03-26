@@ -56,7 +56,6 @@
                             .then(data => {
 
                                 if (data.status === "paid") {
-                                    // ✅ Already updated by callback
                                     window.location.href = "/orders";
                                 } else {
                                     // ⚠️ Fallback trigger

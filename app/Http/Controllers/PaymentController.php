@@ -60,10 +60,8 @@ class PaymentController extends Controller
 
     public function handleReturn(Request $request)
     {
-        // ✅ Log full payload
         Log::info('RETURN HIT - Omniware Payload', $request->all());
 
-        // ✅ Step 1: Verify response
         $verification = $this->paymentService->verifyReturn($request);
 
         if (!$verification['success']) {
@@ -78,11 +76,9 @@ class PaymentController extends Controller
             ]);
         }
 
-        // ✅ Step 2: Extract verified data
         $order = $verification['order'];
         $gatewayTransactionId = $verification['transaction_id'];
 
-        // ✅ Step 3: Fetch transaction using ORDER ID (FIXED)
         $transaction = Transaction::where('order_id', $order->id)->first();
 
         if (!$transaction) {
@@ -96,7 +92,6 @@ class PaymentController extends Controller
             ]);
         }
 
-        // ✅ Step 4: Prevent duplicate update
         if ($transaction->status === 'paid') {
 
             Log::info('Transaction already paid (duplicate callback)', [
@@ -108,7 +103,6 @@ class PaymentController extends Controller
             ]);
         }
 
-        // ✅ Step 5: Mark as PAID
         $this->transactionService->markTransactionPaid(
             $transaction->reference_id,
             $gatewayTransactionId
@@ -140,7 +134,6 @@ class PaymentController extends Controller
                 ->with('error', 'Order not found.');
         }
 
-        // 🔥 KEY FIX — DO NOT VERIFY AGAIN
         if ($order->status === Order::STATUS_PAID) {
 
             $transaction = Transaction::where('order_id', $order->id)->first();

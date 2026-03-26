@@ -118,11 +118,8 @@ class PaymentService
     | Hash Verification
     |--------------------------------------------------------------------------
     */
-
-        // ✅ Step 1: Get full payload except hash
         $payload = $request->except('hash');
 
-        // ✅ Step 2: Remove null/empty values
         $filtered = [];
 
         foreach ($payload as $key => $value) {
@@ -131,10 +128,8 @@ class PaymentService
             }
         }
 
-        // ✅ Step 3: SORT KEYS (CRITICAL)
         ksort($filtered);
 
-        // ✅ Step 4: Build hash string EXACTLY like Omniware
         $salt = config('services.omniware.salt');
 
         $hashString = $salt;
@@ -143,10 +138,8 @@ class PaymentService
             $hashString .= '|' . $value;
         }
 
-        // ✅ Step 5: Generate hash
         $calculatedHash = strtoupper(hash('sha512', $hashString));
 
-        // ✅ Step 6: Compare
         if ($calculatedHash !== $receivedHash) {
 
             Log::warning('Hash mismatch detected', [
