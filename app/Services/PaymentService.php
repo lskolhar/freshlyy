@@ -17,71 +17,71 @@ class PaymentService
     }
 
 
-public function generateSignature(Order $order): array
-{
-    $user = $order->user;
+    public function generateSignature(Order $order): array
+    {
+        $user = $order->user;
 
-    $params = [
-        'api_key' => env('OMNIWARE_API_KEY'),
-        'return_url' => env('OMNIWARE_RETURN_URL'),
-        'mode' => env('OMNIWARE_MODE'),
-        'order_id' => $order->order_number,
-        'amount' => number_format((float) $order->total_amount, 2, '.', ''),
-        'currency' => 'INR',
-        'description' => 'Freshlyy Order Payment',
-        'name' => $user->name,
-        'email' => $user->email,
-        'phone' => $user->phone ?? '9999999999',
-        'address_line_1' => 'Test address',
-        'address_line_2' => '',
-        'city' => 'Bangalore',
-        'state' => 'Karnataka',
-        'zip_code' => '560043',
-        'country' => 'India',
-    ];
+        $params = [
+            'api_key' => env('OMNIWARE_API_KEY'),
+            'return_url' => env('OMNIWARE_RETURN_URL'),
+            'mode' => env('OMNIWARE_MODE'),
+            'order_id' => $order->order_number,
+            'amount' => number_format((float) $order->total_amount, 2, '.', ''),
+            'currency' => 'INR',
+            'description' => 'Freshlyy Order Payment',
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone ?? '9999999999',
+            'address_line_1' => 'Test address',
+            'address_line_2' => '',
+            'city' => 'Bangalore',
+            'state' => 'Karnataka',
+            'zip_code' => '560043',
+            'country' => 'India',
+        ];
 
-    $hash = $this->hashService->generate(
-        $params,
-        env('OMNIWARE_SALT')
-    );
-
-    $params['hash'] = $hash;
-
-    Log::info('Omniware Signature Request', [
-        'order_number' => $order->order_number,
-        'amount' => $order->total_amount,
-    ]);
-
-    /** @var Response $response */
-    $response = Http::timeout(30)
-        ->post(
-            env('OMNIWARE_BASE_URL') . '/v2/getpaymentrequestsignature',
-            $params
+        $hash = $this->hashService->generate(
+            $params,
+            env('OMNIWARE_SALT')
         );
 
-    Log::info('Omniware Signature Response', [
-        'status' => $response->status(),
-        'body' => $response->json(),
-    ]);
+        $params['hash'] = $hash;
 
-    if (!$response->successful()) {
-        throw new \Exception('Signature API HTTP Error');
+        Log::info('Omniware Signature Request', [
+            'order_number' => $order->order_number,
+            'amount' => $order->total_amount,
+        ]);
+
+        /** @var Response $response */
+        $response = Http::timeout(30)
+            ->post(
+                env('OMNIWARE_BASE_URL') . '/v2/getpaymentrequestsignature',
+                $params
+            );
+
+        Log::info('Omniware Signature Response', [
+            'status' => $response->status(),
+            'body' => $response->json(),
+        ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Signature API HTTP Error');
+        }
+
+        $responseData = $response->json();
+
+        if (isset($responseData['error'])) {
+            throw new \Exception(
+                'Omniware Error: ' . ($responseData['error']['message'] ?? 'Unknown error')
+            );
+        }
+
+        if (!isset($responseData['data']['signature'])) {
+            throw new \Exception('Signature missing in response');
+        }
+
+        return $responseData;
     }
-
-    $responseData = $response->json();
-
-    if (isset($responseData['error'])) {
-        throw new \Exception(
-            'Omniware Error: ' . ($responseData['error']['message'] ?? 'Unknown error')
-        );
-    }
-
-    if (!isset($responseData['data']['signature'])) {
-        throw new \Exception('Signature missing in response');
-    }
-
-    return $responseData;
-}
     public function verifyReturn($request)
     {
         $orderNumber = $request->input('order_id');
@@ -119,25 +119,43 @@ public function generateSignature(Order $order): array
     |--------------------------------------------------------------------------
     */
 
+        // ✅ Step 1: Get full payload except hash
         $payload = $request->except('hash');
 
-        $filtered = array_filter($payload, function ($value) {
-            return $value !== null && $value !== '';
-        });
+        // ✅ Step 2: Remove null/empty values
+        $filtered = [];
 
+        foreach ($payload as $key => $value) {
+            if ($value !== null && $value !== '') {
+                $filtered[$key] = trim((string) $value);
+            }
+        }
+
+        // ✅ Step 3: SORT KEYS (CRITICAL)
         ksort($filtered);
 
+        // ✅ Step 4: Build hash string EXACTLY like Omniware
         $salt = config('services.omniware.salt');
 
         $hashString = $salt;
 
         foreach ($filtered as $value) {
-            $hashString .= '|' . trim((string) $value);
+            $hashString .= '|' . $value;
         }
 
+        // ✅ Step 5: Generate hash
         $calculatedHash = strtoupper(hash('sha512', $hashString));
 
+        // ✅ Step 6: Compare
         if ($calculatedHash !== $receivedHash) {
+
+            Log::warning('Hash mismatch detected', [
+                'calculated' => $calculatedHash,
+                'received' => $receivedHash,
+                'string_used' => $hashString,
+                'payload' => $filtered
+            ]);
+
             return [
                 'success' => false,
                 'status' => 'hash_failed'

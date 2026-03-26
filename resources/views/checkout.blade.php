@@ -48,9 +48,36 @@
                 onSuccess: function (response) {
                     console.log("Payment Success:", response);
 
-                    setTimeout(function () {
-                        window.location.href = "/payment/return?order_id={{ $order->order_number }}";
-                    }, 1000);
+                    // Wait a bit to allow gateway callback
+                    setTimeout(() => {
+
+                        fetch("/payment/check-status?order_id={{ $order->order_number }}")
+                            .then(res => res.json())
+                            .then(data => {
+
+                                if (data.status === "paid") {
+                                    // ✅ Already updated by callback
+                                    window.location.href = "/orders";
+                                } else {
+                                    // ⚠️ Fallback trigger
+                                    fetch("/payment/confirm", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                                        },
+                                        body: JSON.stringify({
+                                            order_id: "{{ $order->order_number }}",
+                                            transaction_id: response.transaction_id
+                                        })
+                                    }).then(() => {
+                                        window.location.href = "/orders";
+                                    });
+                                }
+
+                            });
+
+                    }, 2000);
                 },
                 onFailure: function (response) {
                     console.log("Payment Failure:", response);

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use App\Models\Transaction;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\TransactionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
@@ -24,12 +26,6 @@ class PaymentController extends Controller
         $this->transactionService = $transactionService;
         $this->orderService = $orderService;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | STEP 1 — Initiate Payment
-    |--------------------------------------------------------------------------
-    */
 
     public function initiatePayment(Request $request)
     {
@@ -62,22 +58,19 @@ class PaymentController extends Controller
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | STEP 2 — Payment Gateway Return (Server Callback)
-    |--------------------------------------------------------------------------
-    */
-
     public function handleReturn(Request $request)
     {
-        Log::info('Omniware Return Payload', $request->all());
+        // ✅ Log full payload
+        Log::info('RETURN HIT - Omniware Payload', $request->all());
 
+        // ✅ Step 1: Verify response
         $verification = $this->paymentService->verifyReturn($request);
 
         if (!$verification['success']) {
 
-            Log::warning('Verification failed', [
-                'status' => $verification['status']
+            Log::error('Payment verification failed', [
+                'reason' => $verification['status'],
+                'payload' => $request->all()
             ]);
 
             return response()->json([
@@ -85,38 +78,51 @@ class PaymentController extends Controller
             ]);
         }
 
+        // ✅ Step 2: Extract verified data
         $order = $verification['order'];
-        $transactionId = $verification['transaction_id'];
+        $gatewayTransactionId = $verification['transaction_id'];
 
+        // ✅ Step 3: Fetch transaction using ORDER ID (FIXED)
         $transaction = Transaction::where('order_id', $order->id)->first();
 
         if (!$transaction) {
 
-            Log::error('Transaction not found', [
+            Log::error('Transaction not found using order_id', [
                 'order_id' => $order->id
             ]);
 
-            return response()->json(['status' => 'transaction_not_found']);
+            return response()->json([
+                'status' => 'transaction_not_found'
+            ]);
         }
 
+        // ✅ Step 4: Prevent duplicate update
+        if ($transaction->status === 'paid') {
+
+            Log::info('Transaction already paid (duplicate callback)', [
+                'order_id' => $order->id
+            ]);
+
+            return response()->json([
+                'status' => 'already_processed'
+            ]);
+        }
+
+        // ✅ Step 5: Mark as PAID
         $this->transactionService->markTransactionPaid(
             $transaction->reference_id,
-            $transactionId
+            $gatewayTransactionId
         );
 
-        Log::info('Payment processed successfully', [
+        Log::info('Transaction marked as PAID', [
             'order_id' => $order->id,
-            'reference_id' => $transaction->reference_id
+            'gateway_transaction_id' => $gatewayTransactionId
         ]);
 
-        return response()->json(['status' => 'success']);
+        return response()->json([
+            'status' => 'success'
+        ]);
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | STEP 3 — Browser Redirect After Payment
-    |--------------------------------------------------------------------------
-    */
 
     public function handleRedirect(Request $request)
     {
@@ -127,19 +133,33 @@ class PaymentController extends Controller
                 ->with('error', 'Invalid payment redirect.');
         }
 
-        $order = $this->orderService->getUserOrder(
-            $orderNumber,
-            $request->user()->id
-        );
+        $order = Order::where('order_number', $orderNumber)->first();
 
         if (!$order) {
             return redirect()->route('orders.index')
                 ->with('error', 'Order not found.');
         }
 
-        if ($order->status === 'paid') {
+        // 🔥 KEY FIX — DO NOT VERIFY AGAIN
+        if ($order->status === Order::STATUS_PAID) {
 
-            $this->orderService->clearUserCart($request->user()->id);
+            $transaction = Transaction::where('order_id', $order->id)->first();
+
+            if ($transaction && $transaction->status !== 'paid') {
+
+                $this->transactionService->markTransactionPaid(
+                    $transaction->reference_id,
+                    $order->transaction_id ?? 'REDIRECT_' . time()
+                );
+
+                Log::info('Transaction fixed via redirect', [
+                    'order_id' => $order->id
+                ]);
+            }
+
+            if (Auth::check()) {
+                $this->orderService->clearUserCart(Auth::id());
+            }
 
             return redirect()->route('orders.index')
                 ->with('success', 'Payment successful.');
@@ -148,4 +168,50 @@ class PaymentController extends Controller
         return redirect()->route('orders.index')
             ->with('error', 'Payment failed.');
     }
+    public function confirmPayment(Request $request)
+    {
+        Log::info('Frontend payment confirmation', $request->all());
+
+        $orderNumber = $request->input('order_id');
+        $gatewayTransactionId = $request->input('transaction_id');
+
+        $order = Order::where('order_number', $orderNumber)->first();
+
+        if (!$order) {
+            return response()->json(['status' => 'order_not_found']);
+        }
+
+        $transaction = Transaction::where('order_id', $order->id)->first();
+
+        if (!$transaction) {
+            return response()->json(['status' => 'transaction_not_found']);
+        }
+
+        if ($transaction->status === 'paid') {
+            return response()->json(['status' => 'already_paid']);
+        }
+
+        $this->transactionService->markTransactionPaid(
+            $transaction->reference_id,
+            $gatewayTransactionId
+        );
+
+        Log::info('Transaction marked via frontend fallback', [
+            'order_id' => $order->id
+        ]);
+
+        return response()->json(['status' => 'success']);
+    }
+    public function checkStatus(Request $request)
+{
+    $order = Order::where('order_number', $request->order_id)->first();
+
+    if (!$order) {
+        return response()->json(['status' => 'not_found']);
+    }
+
+    return response()->json([
+        'status' => $order->status === 'paid' ? 'paid' : 'pending'
+    ]);
+}
 }

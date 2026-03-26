@@ -94,3 +94,7 @@ Route::get('/payment/success/{order}', [PaymentController::class, 'success'])
 Route::get('/payment/return', [PaymentController::class, 'handleRedirect'])
     ->middleware('auth')
     ->name('payment.redirect');
+    
+Route::post('/payment/confirm', [PaymentController::class, 'confirmPayment']);
+
+Route::get('/payment/check-status', [PaymentController::class, 'checkStatus']);
