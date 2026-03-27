@@ -10,6 +10,7 @@ use App\Services\TransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
@@ -44,6 +45,13 @@ class PaymentController extends Controller
         $order = $this->orderService->createOrderFromCart($user->id, $cart);
 
         $transaction = $this->transactionService->createTransaction($order);
+        $paymentToken = (string) Str::uuid();
+
+        $request->session()->put('payment_confirmation', [
+            'order_number' => $order->order_number,
+            'reference_id' => $transaction->reference_id,
+            'token' => $paymentToken,
+        ]);
 
         $signatureData = $this->paymentService->generateSignature($order);
 
@@ -55,12 +63,18 @@ class PaymentController extends Controller
             'apiKey' => config('services.omniware.api_key'),
             'amount' => $order->total_amount,
             'baseUrl' => config('services.omniware.base_url'),
+            'paymentToken' => $paymentToken,
         ]);
     }
 
     public function handleReturn(Request $request)
     {
-        Log::info('RETURN HIT - Omniware Payload', $request->all());
+        Log::info('RETURN HIT - Omniware Payload', [
+            'order_id' => $request->input('order_id'),
+            'transaction_id' => $request->input('transaction_id'),
+            'response_code' => $request->input('response_code'),
+            'amount' => $request->input('amount'),
+        ]);
 
         $verification = $this->paymentService->verifyReturn($request);
 
@@ -68,7 +82,8 @@ class PaymentController extends Controller
 
             Log::error('Payment verification failed', [
                 'reason' => $verification['status'],
-                'payload' => $request->all()
+                'order_id' => $request->input('order_id'),
+                'transaction_id' => $request->input('transaction_id'),
             ]);
 
             return response()->json([
@@ -134,6 +149,10 @@ class PaymentController extends Controller
                 ->with('error', 'Order not found.');
         }
 
+        if (Auth::id() !== $order->user_id && Auth::user()?->role !== 'admin') {
+            abort(403);
+        }
+
         if ($order->status === Order::STATUS_PAID) {
 
             $transaction = Transaction::where('order_id', $order->id)->first();
@@ -154,6 +173,8 @@ class PaymentController extends Controller
                 $this->orderService->clearUserCart(Auth::id());
             }
 
+            $request->session()->forget('payment_confirmation');
+
             return redirect()->route('orders.index')
                 ->with('success', 'Payment successful.');
         }
@@ -163,10 +184,18 @@ class PaymentController extends Controller
     }
     public function confirmPayment(Request $request)
     {
-        Log::info('Frontend payment confirmation', $request->all());
+        Log::info('Frontend payment confirmation', [
+            'order_id' => $request->input('order_id'),
+            'user_id' => $request->user()?->id,
+        ]);
 
         $orderNumber = $request->input('order_id');
         $gatewayTransactionId = $request->input('transaction_id');
+        $paymentToken = $request->input('payment_token');
+
+        if (!$orderNumber || !$gatewayTransactionId || !$paymentToken) {
+            return response()->json(['status' => 'invalid_request'], 422);
+        }
 
         $order = Order::where('order_number', $orderNumber)->first();
 
@@ -174,10 +203,25 @@ class PaymentController extends Controller
             return response()->json(['status' => 'order_not_found']);
         }
 
+        if ($request->user()->id !== $order->user_id && $request->user()->role !== 'admin') {
+            abort(403);
+        }
+
         $transaction = Transaction::where('order_id', $order->id)->first();
 
         if (!$transaction) {
             return response()->json(['status' => 'transaction_not_found']);
+        }
+
+        $sessionPayment = $request->session()->get('payment_confirmation');
+
+        if (
+            !is_array($sessionPayment)
+            || ($sessionPayment['order_number'] ?? null) !== $order->order_number
+            || ($sessionPayment['reference_id'] ?? null) !== $transaction->reference_id
+            || !hash_equals((string) ($sessionPayment['token'] ?? ''), (string) $paymentToken)
+        ) {
+            return response()->json(['status' => 'payment_context_mismatch'], 403);
         }
 
         if ($transaction->status === 'paid') {
@@ -193,6 +237,8 @@ class PaymentController extends Controller
             'order_id' => $order->id
         ]);
 
+        $request->session()->forget('payment_confirmation');
+
         return response()->json(['status' => 'success']);
     }
     public function checkStatus(Request $request)
@@ -201,6 +247,10 @@ class PaymentController extends Controller
 
     if (!$order) {
         return response()->json(['status' => 'not_found']);
+    }
+
+    if ($request->user()->id !== $order->user_id && $request->user()->role !== 'admin') {
+        abort(403);
     }
 
     return response()->json([

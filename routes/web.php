@@ -25,7 +25,8 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [SessionController::class, 'create'])
         ->name('login');
 
-    Route::post('/login', [SessionController::class, 'store']);
+    Route::post('/login', [SessionController::class, 'store'])
+        ->middleware('throttle:login');
 
     // Register form
     Route::get('/register', [RegisterUserController::class, 'create'])
@@ -91,6 +92,9 @@ Route::get('/payment/return', [PaymentController::class, 'handleRedirect'])
     ->middleware('auth')
     ->name('payment.redirect');
     
-Route::post('/payment/confirm', [PaymentController::class, 'confirmPayment']);
+Route::middleware(['auth'])->group(function () {
 
-Route::get('/payment/check-status', [PaymentController::class, 'checkStatus']);
+    Route::post('/payment/confirm', [PaymentController::class, 'confirmPayment']);
+    Route::get('/payment/check-status', [PaymentController::class, 'checkStatus']);
+
+});

@@ -61,7 +61,6 @@ class PaymentService
 
         Log::info('Omniware Signature Response', [
             'status' => $response->status(),
-            'body' => $response->json(),
         ]);
 
         if (!$response->successful()) {
@@ -143,10 +142,9 @@ class PaymentService
         if ($calculatedHash !== $receivedHash) {
 
             Log::warning('Hash mismatch detected', [
-                'calculated' => $calculatedHash,
-                'received' => $receivedHash,
-                'string_used' => $hashString,
-                'payload' => $filtered
+                'order_id' => $orderNumber,
+                'transaction_id' => $transactionId,
+                'payload_keys' => array_keys($filtered),
             ]);
 
             return [

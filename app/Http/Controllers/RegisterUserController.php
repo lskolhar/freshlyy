@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Concerns\PasswordValidationRules;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class RegisterUserController extends Controller
 {
+    use PasswordValidationRules;
+
     public function create()
     {
         // No role from URL anymore
@@ -19,7 +22,7 @@ class RegisterUserController extends Controller
         $attributes = $request->validate([
             'name' => ['required'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'min:4', 'confirmed'],
+            'password' => $this->passwordRules(),
         ]);
 
         $attributes['password'] = bcrypt($attributes['password']);

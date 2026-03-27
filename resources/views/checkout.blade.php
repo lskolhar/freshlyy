@@ -65,7 +65,8 @@
                                         },
                                         body: JSON.stringify({
                                             order_id: "{{ $order->order_number }}",
-                                            transaction_id: response.transaction_id
+                                            transaction_id: response.transaction_id,
+                                            payment_token: "{{ $paymentToken }}"
                                         })
                                     }).then(() => {
                                         window.location.href = "/orders";
