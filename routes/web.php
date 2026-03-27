@@ -83,10 +83,6 @@ Route::post('/checkout', [PaymentController::class, 'initiatePayment'])
     ->middleware('auth')
     ->name('checkout.initiate');
 
-Route::post('/payment/return', [PaymentController::class, 'handleReturn'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
-    ->name('payment.return');
-
 Route::get('/payment/success/{order}', [PaymentController::class, 'success'])
     ->middleware('auth')
     ->name('payment.success');

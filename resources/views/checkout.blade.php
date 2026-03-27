@@ -48,7 +48,6 @@
                 onSuccess: function (response) {
                     console.log("Payment Success:", response);
 
-                    // Wait a bit to allow gateway callback
                     setTimeout(() => {
 
                         fetch("/payment/check-status?order_id={{ $order->order_number }}")
@@ -58,7 +57,6 @@
                                 if (data.status === "paid") {
                                     window.location.href = "/orders";
                                 } else {
-                                    // ⚠️ Fallback trigger
                                     fetch("/payment/confirm", {
                                         method: "POST",
                                         headers: {
