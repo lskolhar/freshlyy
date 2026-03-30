@@ -4,7 +4,7 @@ use App\Models\User;
 use Laravel\Fortify\Features;
 
 test('login screen can be rendered', function () {
-    $response = $this->get(route('login'));
+    $response = $this->get('/login');
 
     $response->assertOk();
 });
@@ -32,7 +32,7 @@ test('users can not authenticate with invalid password', function () {
         'password' => 'wrong-password',
     ]);
 
-    $response->assertSessionHasErrorsIn('email');
+    $response->assertSessionHasErrors(['email']);
 
     $this->assertGuest();
 });
@@ -54,16 +54,16 @@ test('users with two factor enabled are redirected to two factor challenge', fun
         'password' => 'password',
     ]);
 
-    $response->assertRedirect(route('two-factor.login'));
+    $response->assertRedirect('/two-factor-challenge');
     $this->assertGuest();
 });
 
 test('users can logout', function () {
     $user = User::factory()->create();
 
-    $response = $this->actingAs($user)->post(route('logout'));
+    $response = $this->actingAs($user)->post('/logout');
 
-    $response->assertRedirect(route('home'));
+    $response->assertRedirect('/');
 
     $this->assertGuest();
 });

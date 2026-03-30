@@ -16,7 +16,7 @@ class RedirectGuestToLoginOptions
     {
         // 👇 THIS IS WHERE IT GOES
         if (! auth()->check()) {
-            return redirect()->route('login.options');
+            return redirect()->route('login');
         }
 
         return $next($request);

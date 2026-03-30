@@ -2,13 +2,14 @@
 
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 
 test('email verification screen can be rendered', function () {
     $user = User::factory()->unverified()->create();
 
-    $response = $this->actingAs($user)->get(route('verification.notice'));
+    $response = $this->actingAs($user)->get('/email/verify');
 
     $response->assertOk();
 });
@@ -20,7 +21,7 @@ test('email can be verified', function () {
 
     $verificationUrl = URL::temporarySignedRoute(
         'verification.verify',
-        now()->addMinutes(60),
+        Carbon::now()->addMinutes(60),
         ['id' => $user->id, 'hash' => sha1($user->email)]
     );
 
@@ -37,7 +38,7 @@ test('email is not verified with invalid hash', function () {
 
     $verificationUrl = URL::temporarySignedRoute(
         'verification.verify',
-        now()->addMinutes(60),
+        Carbon::now()->addMinutes(60),
         ['id' => $user->id, 'hash' => sha1('wrong-email')]
     );
 
@@ -48,14 +49,14 @@ test('email is not verified with invalid hash', function () {
 
 test('already verified user visiting verification link is redirected without firing event again', function () {
     $user = User::factory()->create([
-        'email_verified_at' => now(),
+        'email_verified_at' => Carbon::now(),
     ]);
 
     Event::fake();
 
     $verificationUrl = URL::temporarySignedRoute(
         'verification.verify',
-        now()->addMinutes(60),
+        Carbon::now()->addMinutes(60),
         ['id' => $user->id, 'hash' => sha1($user->email)]
     );
 
