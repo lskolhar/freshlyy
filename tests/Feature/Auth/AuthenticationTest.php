@@ -12,14 +12,14 @@ test('login screen can be rendered', function () {
 test('users can authenticate using the login screen', function () {
     $user = User::factory()->create();
 
-    $response = $this->post(route('login.store'), [
+    $response = $this->post('/login', [
         'email' => $user->email,
         'password' => 'password',
     ]);
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('dashboard', absolute: false));
+        ->assertRedirect('/');
 
     $this->assertAuthenticated();
 });
@@ -27,7 +27,7 @@ test('users can authenticate using the login screen', function () {
 test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
-    $response = $this->post(route('login.store'), [
+    $response = $this->post('/login', [
         'email' => $user->email,
         'password' => 'wrong-password',
     ]);
@@ -49,7 +49,7 @@ test('users with two factor enabled are redirected to two factor challenge', fun
 
     $user = User::factory()->withTwoFactor()->create();
 
-    $response = $this->post(route('login.store'), [
+    $response = $this->post('/login', [
         'email' => $user->email,
         'password' => 'password',
     ]);
@@ -67,3 +67,4 @@ test('users can logout', function () {
 
     $this->assertGuest();
 });
+ 
