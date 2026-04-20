@@ -3,6 +3,8 @@
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Http\Controllers\CartController;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 test('authenticated user can add update remove and clear their cart', function () {
     $user = User::factory()->create();
@@ -71,6 +73,18 @@ test('cart update validates quantity and removes item when quantity is zero', fu
     expect(session("cart_{$user->id}.{$product->id}"))->toBeNull();
 });
 
+test('cart update silently returns when the product is not in the cart', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create();
+
+    $this->actingAs($user)
+        ->from(route('cart.index'))
+        ->patch(route('cart.update', $product), ['quantity' => 2])
+        ->assertRedirect(route('cart.index'));
+
+    expect(session("cart_{$user->id}"))->toBeNull();
+});
+
 test('cart page sorts products by name', function () {
     $user = User::factory()->create();
 
@@ -83,4 +97,15 @@ test('cart page sorts products by name', function () {
         ->get(route('cart.index'))
         ->assertOk()
         ->assertSeeInOrder(['Apple', 'Zucchini']);
+});
+
+test('cart controller aborts when cart key is requested without authentication', function () {
+    auth()->logout();
+
+    $controller = app(CartController::class);
+    $method = new ReflectionMethod($controller, 'cartKey');
+    $method->setAccessible(true);
+
+    expect(fn () => $method->invoke($controller))
+        ->toThrow(HttpException::class, 'Unauthorized');
 });

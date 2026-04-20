@@ -7,9 +7,15 @@ use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\RedirectGuestToLoginOptions;
 use App\Livewire\Actions\Logout;
 use App\Models\User;
+use App\Providers\AppServiceProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Rule;
+use Carbon\CarbonImmutable;
 
 test('profile validation rules include unique email ignore support', function () {
     $rules = new class
@@ -80,4 +86,56 @@ test('livewire logout action logs out and invalidates the session', function () 
 
     expect($response->getTargetUrl())->toBe(url('/'));
     $this->assertGuest();
+});
+
+test('app service provider configures local forwarded host defaults', function () {
+    $this->app['env'] = 'local';
+    app()->instance('request', Request::create('/', 'GET', [], [], [], ['HTTP_X_FORWARDED_HOST' => 'proxy.test']));
+
+    URL::shouldReceive('forceRootUrl')->once()->with('https://proxy.test');
+    URL::shouldReceive('forceScheme')->once()->with('https');
+    Date::shouldReceive('use')->once()->with(CarbonImmutable::class);
+
+    $provider = new AppServiceProvider($this->app);
+    $method = new ReflectionMethod($provider, 'configureDefaults');
+    $method->setAccessible(true);
+    $method->invoke($provider);
+
+    expect(Password::default()->appliedRules()['min'])->toBe(8);
+});
+
+test('app service provider configures production password defaults', function () {
+    $this->app['env'] = 'production';
+    app()->instance('request', Request::create('/', 'GET'));
+
+    Date::shouldReceive('use')->once()->with(CarbonImmutable::class);
+
+    $provider = new AppServiceProvider($this->app);
+    $method = new ReflectionMethod($provider, 'configureDefaults');
+    $method->setAccessible(true);
+    $method->invoke($provider);
+
+    expect(Password::default()->appliedRules())->toBe([
+        'min' => 12,
+        'max' => null,
+        'mixedCase' => true,
+        'letters' => true,
+        'numbers' => true,
+        'symbols' => true,
+        'uncompromised' => true,
+        'compromisedThreshold' => 0,
+        'customRules' => [],
+    ]);
+});
+
+test('fortify registers the two factor limiter session key callback', function () {
+    $limiter = RateLimiter::limiter('two-factor');
+    $request = Request::create('/two-factor', 'POST');
+    $request->setLaravelSession(app('session')->driver());
+    $request->session()->put('login.id', 'user-login-id');
+
+    $limit = $limiter($request);
+
+    expect($limit->maxAttempts)->toBe(5)
+        ->and($limit->key)->toBe('user-login-id');
 });
